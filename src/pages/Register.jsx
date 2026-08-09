@@ -6,31 +6,60 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import {
   HiOutlineMail,
+  HiOutlineLockClosed,
   HiOutlineUser,
   HiOutlineEye,
   HiOutlineEyeOff,
-  HiOutlineShoppingBag,
-  HiOutlineCurrencyDollar,
+  HiOutlineCheck,
+  HiOutlineX,
 } from "react-icons/hi";
 import { FcGoogle } from "react-icons/fc";
-import toast from "react-hot-toast";
+import { FaFacebook, FaDiscord } from "react-icons/fa";
 import useAuthStore from "../stores/useAuthStore";
-import Button from "../components/ui/Button";
 import Logo from "../components/shared/Logo";
+import Button from "../components/ui/Button";
+
+// Temp email domains to block
+const tempEmailDomains = [
+  "temp-mail.org",
+  "tempmail.com",
+  "10minutemail.com",
+  "guerrillamail.com",
+  "mailinator.com",
+  "yopmail.com",
+  "throwaway.email",
+  "sharklasers.com",
+  "trashmail.com",
+  "tempinbox.com",
+  "emailondeck.com",
+  "moakt.com",
+  "dispostable.com",
+  "maildrop.cc",
+  "harakirimail.com",
+];
 
 const registerSchema = z.object({
   username: z
     .string()
     .min(3, "Username must be at least 3 characters")
-    .max(20, "Username must be less than 20 characters")
+    .max(20, "Max 20 characters")
     .regex(/^[a-zA-Z0-9_]+$/, "Only letters, numbers, and underscores"),
-  email: z.string().email("Please enter a valid email"),
+  email: z
+    .string()
+    .email("Please enter a valid email")
+    .refine((email) => {
+      const domain = email.split("@")[1]?.toLowerCase();
+      return !tempEmailDomains.includes(domain);
+    }, "Temporary email addresses are not allowed"),
   password: z
     .string()
     .min(8, "Password must be at least 8 characters")
     .regex(/[A-Z]/, "Must contain at least one uppercase letter")
-    .regex(/[0-9]/, "Must contain at least one number"),
-  role: z.enum(["buyer", "seller"]),
+    .regex(/[0-9]/, "Must contain at least one number")
+    .regex(
+      /[!@#$%^&*(),.?":{}|<>]/,
+      "Must contain at least one special character",
+    ),
   agreeToTerms: z.literal(true, {
     errorMap: () => ({ message: "You must agree to the terms" }),
   }),
@@ -39,7 +68,14 @@ const registerSchema = z.object({
 export default function Register() {
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const { signUp, signInWithGoogle, user } = useAuthStore();
+  const [password, setPassword] = useState("");
+  const {
+    signUp,
+    signInWithGoogle,
+    signInWithFacebook,
+    signInWithDiscord,
+    user,
+  } = useAuthStore();
   const navigate = useNavigate();
 
   const {
@@ -49,101 +85,89 @@ export default function Register() {
     formState: { errors },
   } = useForm({
     resolver: zodResolver(registerSchema),
-    defaultValues: {
-      role: "buyer",
-    },
   });
 
-  const selectedRole = watch("role");
+  const watchedPassword = watch("password", "");
 
   useEffect(() => {
     if (user) navigate("/", { replace: true });
   }, [user]);
 
+  useEffect(() => {
+    setPassword(watchedPassword);
+  }, [watchedPassword]);
+
   const onSubmit = async (data) => {
     setIsLoading(true);
-    const result = await signUp(
-      data.email,
-      data.password,
-      data.username,
-      data.role,
-    );
-
-    if (result.success) {
-      toast.success("Account created! Check your email to verify.", {
-        icon: "🎉",
-        duration: 5000,
-      });
-      navigate("/login");
-    } else {
-      toast.error(result.error || "Registration failed");
-    }
+    const result = await signUp(data.email, data.password, data.username);
+    if (result.success) navigate("/login");
     setIsLoading(false);
   };
 
-  const handleGoogleSignIn = async () => {
-    const result = await signInWithGoogle();
-    if (!result.success) {
-      toast.error(result.error || "Google sign in failed");
-    }
-  };
+  // Password strength checks
+  const passwordChecks = [
+    { label: "At least 8 characters", passed: password.length >= 8 },
+    { label: "One uppercase letter", passed: /[A-Z]/.test(password) },
+    { label: "One number", passed: /[0-9]/.test(password) },
+    {
+      label: "One special character (!@#$%^&*)",
+      passed: /[!@#$%^&*(),.?":{}|<>]/.test(password),
+    },
+  ];
+
+  const allChecksPassed = passwordChecks.every((check) => check.passed);
 
   return (
-    <div className="min-h-screen flex items-center justify-center px-4 py-20 relative">
-      {/* Background */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <motion.div
-          animate={{ scale: [1, 1.2, 1], opacity: [0.2, 0.3, 0.2] }}
-          transition={{ duration: 8, repeat: Infinity }}
-          className="absolute -top-40 -right-40 w-[500px] h-[500px] rounded-full"
-          style={{
-            background:
-              "radial-gradient(circle, rgba(139, 92, 246, 0.15), transparent 70%)",
-          }}
-        />
-      </div>
-
+    <div className="min-h-screen flex items-center justify-center px-4 py-20">
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5 }}
-        className="relative w-full max-w-md"
+        className="w-full max-w-md"
       >
-        <div className="absolute -inset-1 bg-gradient-to-r from-brand-purple/30 via-brand-gold/20 to-brand-purple/30 rounded-3xl blur-xl" />
+        <div className="flex justify-center mb-8">
+          <Logo size="lg" />
+        </div>
 
-        <div className="relative glass-modal p-8 sm:p-10">
-          <div className="flex justify-center mb-6">
-            <Logo size="lg" />
-          </div>
-
+        <div className="glass-card p-6 sm:p-8">
           <div className="text-center mb-8">
             <h1 className="text-2xl font-display font-extrabold text-white">
               Create Account
             </h1>
-            <p className="mt-2 text-white/40 text-sm">
-              Join ZAZA Store and start trading
+            <p className="text-text-muted text-sm mt-2">
+              Join the ultimate gaming marketplace
             </p>
           </div>
 
-          {/* Google Sign Up */}
-          <motion.button
-            whileHover={{ scale: 1.02 }}
-            whileTap={{ scale: 0.98 }}
-            onClick={handleGoogleSignIn}
-            className="w-full flex items-center justify-center gap-3 px-4 py-3.5 glass-card hover:border-brand-purple/30 transition-all duration-300 mb-6"
-          >
-            <FcGoogle className="w-5 h-5" />
-            <span className="text-white/80 font-medium text-sm">
-              Continue with Google
-            </span>
-          </motion.button>
+          {/* Social Sign Up */}
+          <div className="space-y-3 mb-6">
+            <button
+              onClick={signInWithGoogle}
+              className="w-full flex items-center justify-center gap-3 px-4 py-3 rounded-xl bg-arcane-surface border border-arcane-border hover:border-arcane-purple/30 text-white font-medium text-sm transition-all"
+            >
+              <FcGoogle className="w-5 h-5" /> Continue with Google
+            </button>
+            <button
+              onClick={signInWithDiscord}
+              className="w-full flex items-center justify-center gap-3 px-4 py-3 rounded-xl bg-[#5865F2]/10 border border-[#5865F2]/20 hover:border-[#5865F2]/40 text-white font-medium text-sm transition-all"
+            >
+              <FaDiscord className="w-5 h-5 text-[#5865F2]" /> Continue with
+              Discord
+            </button>
+            <button
+              onClick={signInWithFacebook}
+              className="w-full flex items-center justify-center gap-3 px-4 py-3 rounded-xl bg-[#1877F2]/10 border border-[#1877F2]/20 hover:border-[#1877F2]/40 text-white font-medium text-sm transition-all"
+            >
+              <FaFacebook className="w-5 h-5 text-[#1877F2]" /> Continue with
+              Facebook
+            </button>
+          </div>
 
           <div className="relative mb-6">
             <div className="absolute inset-0 flex items-center">
-              <div className="w-full border-t border-glass-border" />
+              <div className="w-full border-t border-arcane-border" />
             </div>
             <div className="relative flex justify-center text-xs">
-              <span className="px-4 bg-brand-darker text-white/30">
+              <span className="px-4 bg-arcane-dark text-text-muted">
                 or register with email
               </span>
             </div>
@@ -152,70 +176,63 @@ export default function Register() {
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
             {/* Username */}
             <div>
-              <label className="block text-sm font-medium text-white/60 mb-2">
+              <label className="block text-sm font-medium text-text-secondary mb-2">
                 Username
               </label>
               <div className="relative">
-                <HiOutlineUser className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-white/30" />
+                <HiOutlineUser className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-text-muted z-10" />
                 <input
                   type="text"
                   {...register("username")}
                   placeholder="Your username"
-                  className="input-glass pl-12 pr-4 py-3 w-full"
+                  className="w-full bg-arcane-surface border border-arcane-border rounded-xl py-3.5 pl-12 pr-4 text-white placeholder-text-muted outline-none focus:border-arcane-purple/50 focus:ring-2 focus:ring-arcane-purple/20 transition-all text-sm"
                 />
               </div>
               {errors.username && (
-                <motion.p
-                  initial={{ opacity: 0, y: -5 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  className="mt-1 text-red-400 text-xs"
-                >
+                <p className="text-danger text-xs mt-1">
                   {errors.username.message}
-                </motion.p>
+                </p>
               )}
             </div>
 
             {/* Email */}
             <div>
-              <label className="block text-sm font-medium text-white/60 mb-2">
+              <label className="block text-sm font-medium text-text-secondary mb-2">
                 Email Address
               </label>
               <div className="relative">
-                <HiOutlineMail className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-white/30" />
+                <HiOutlineMail className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-text-muted z-10" />
                 <input
                   type="email"
                   {...register("email")}
                   placeholder="you@example.com"
-                  className="input-glass pl-12 pr-4 py-3 w-full"
+                  className="w-full bg-arcane-surface border border-arcane-border rounded-xl py-3.5 pl-12 pr-4 text-white placeholder-text-muted outline-none focus:border-arcane-purple/50 focus:ring-2 focus:ring-arcane-purple/20 transition-all text-sm"
                 />
               </div>
               {errors.email && (
-                <motion.p
-                  initial={{ opacity: 0, y: -5 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  className="mt-1 text-red-400 text-xs"
-                >
+                <p className="text-danger text-xs mt-1">
                   {errors.email.message}
-                </motion.p>
+                </p>
               )}
             </div>
 
             {/* Password */}
             <div>
-              <label className="block text-sm font-medium text-white/60 mb-2">
+              <label className="block text-sm font-medium text-text-secondary mb-2">
                 Password
               </label>
               <div className="relative">
+                <HiOutlineLockClosed className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-text-muted z-10" />
                 <input
                   type={showPassword ? "text" : "password"}
                   {...register("password")}
                   placeholder="Minimum 8 characters"
-                  className="input-glass pl-12 pr-12 py-3 w-full"
+                  className="w-full bg-arcane-surface border border-arcane-border rounded-xl py-3.5 pl-12 pr-12 text-white placeholder-text-muted outline-none focus:border-arcane-purple/50 focus:ring-2 focus:ring-arcane-purple/20 transition-all text-sm"
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-4 top-1/2 -translate-y-1/2 text-white/30 hover:text-white/60 transition-colors"
+                  className="absolute right-4 top-1/2 -translate-y-1/2 text-text-muted hover:text-white z-10"
                 >
                   {showPassword ? (
                     <HiOutlineEyeOff className="w-5 h-5" />
@@ -225,80 +242,38 @@ export default function Register() {
                 </button>
               </div>
               {errors.password && (
-                <motion.p
-                  initial={{ opacity: 0, y: -5 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  className="mt-1 text-red-400 text-xs"
-                >
+                <p className="text-danger text-xs mt-1">
                   {errors.password.message}
-                </motion.p>
+                </p>
               )}
-            </div>
 
-            {/* Role Selection */}
-            <div>
-              <label className="block text-sm font-medium text-white/60 mb-2">
-                I want to
-              </label>
-              <div className="grid grid-cols-2 gap-3">
-                <label
-                  className={`relative flex flex-col items-center gap-2 p-4 rounded-xl border-2 cursor-pointer transition-all duration-300 ${
-                    selectedRole === "buyer"
-                      ? "border-brand-purple bg-brand-purple/10"
-                      : "border-glass-border hover:border-white/20"
-                  }`}
-                >
-                  <input
-                    type="radio"
-                    value="buyer"
-                    {...register("role")}
-                    className="sr-only"
-                  />
-                  <HiOutlineShoppingBag
-                    className={`w-6 h-6 ${
-                      selectedRole === "buyer"
-                        ? "text-brand-purple"
-                        : "text-white/40"
-                    }`}
-                  />
-                  <span
-                    className={`text-sm font-medium ${
-                      selectedRole === "buyer" ? "text-white" : "text-white/50"
-                    }`}
-                  >
-                    Buy Accounts
-                  </span>
-                </label>
-
-                <label
-                  className={`relative flex flex-col items-center gap-2 p-4 rounded-xl border-2 cursor-pointer transition-all duration-300 ${
-                    selectedRole === "seller"
-                      ? "border-brand-gold bg-brand-gold/10"
-                      : "border-glass-border hover:border-white/20"
-                  }`}
-                >
-                  <input
-                    type="radio"
-                    value="seller"
-                    {...register("role")}
-                    className="sr-only"
-                  />
-                  <HiOutlineCurrencyDollar
-                    className={`w-6 h-6 ${
-                      selectedRole === "seller"
-                        ? "text-brand-gold"
-                        : "text-white/40"
-                    }`}
-                  />
-                  <span
-                    className={`text-sm font-medium ${
-                      selectedRole === "seller" ? "text-white" : "text-white/50"
-                    }`}
-                  >
-                    Sell Accounts
-                  </span>
-                </label>
-              </div>
+              {/* Password Strength Checks */}
+              {password.length > 0 && (
+                <div className="mt-3 p-3 rounded-xl bg-arcane-surface border border-arcane-border space-y-2">
+                  <p className="text-xs text-text-muted font-medium">
+                    Password Strength
+                  </p>
+                  {passwordChecks.map((check) => (
+                    <div key={check.label} className="flex items-center gap-2">
+                      {check.passed ? (
+                        <HiOutlineCheck className="w-4 h-4 text-success flex-shrink-0" />
+                      ) : (
+                        <HiOutlineX className="w-4 h-4 text-text-muted flex-shrink-0" />
+                      )}
+                      <span
+                        className={`text-xs ${check.passed ? "text-success" : "text-text-muted"}`}
+                      >
+                        {check.label}
+                      </span>
+                    </div>
+                  ))}
+                  {allChecksPassed && (
+                    <p className="text-xs text-success font-medium">
+                      Strong password!
+                    </p>
+                  )}
+                </div>
+              )}
             </div>
 
             {/* Terms */}
@@ -306,36 +281,31 @@ export default function Register() {
               <input
                 type="checkbox"
                 {...register("agreeToTerms")}
-                className="mt-1 w-4 h-4 rounded border-glass-border bg-white/5 text-brand-purple focus:ring-brand-purple focus:ring-offset-0"
+                className="mt-1 w-4 h-4 rounded border-arcane-border bg-arcane-surface text-arcane-purple focus:ring-arcane-purple"
               />
-              <label className="text-sm text-white/40">
+              <label className="text-sm text-text-muted">
                 I agree to the{" "}
                 <Link
                   to="/terms"
-                  className="text-brand-purple hover:text-brand-gold transition-colors"
+                  className="text-arcane-purple hover:text-arcane-gold-light"
                 >
                   Terms of Service
                 </Link>{" "}
                 and{" "}
                 <Link
                   to="/privacy"
-                  className="text-brand-purple hover:text-brand-gold transition-colors"
+                  className="text-arcane-purple hover:text-arcane-gold-light"
                 >
                   Privacy Policy
                 </Link>
               </label>
             </div>
             {errors.agreeToTerms && (
-              <motion.p
-                initial={{ opacity: 0, y: -5 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="text-red-400 text-xs"
-              >
+              <p className="text-danger text-xs">
                 {errors.agreeToTerms.message}
-              </motion.p>
+              </p>
             )}
 
-            {/* Submit */}
             <Button
               type="submit"
               variant="primary"
@@ -343,22 +313,15 @@ export default function Register() {
               className="w-full"
               disabled={isLoading}
             >
-              {isLoading ? (
-                <div className="flex items-center gap-2">
-                  <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                  Creating Account...
-                </div>
-              ) : (
-                "Create Account"
-              )}
+              {isLoading ? "Creating Account..." : "Create Account"}
             </Button>
           </form>
 
-          <p className="mt-6 text-center text-sm text-white/40">
+          <p className="mt-6 text-center text-sm text-text-muted">
             Already have an account?{" "}
             <Link
               to="/login"
-              className="text-brand-purple hover:text-brand-gold font-medium transition-colors"
+              className="text-arcane-purple hover:text-arcane-gold-light font-medium transition-colors"
             >
               Sign in
             </Link>

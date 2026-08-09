@@ -1,45 +1,57 @@
-import { useRef, useEffect } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { HiOutlineSearch, HiOutlineX, HiOutlineClock } from "react-icons/hi";
+import { HiOutlineSearch, HiOutlineX, HiOutlineFire } from "react-icons/hi";
 import useSearchStore from "../../stores/useSearchStore";
+import useCurrencyStore from "../../stores/useCurrencyStore";
+import Skeleton from "../ui/Skeleton";
 
-const rankColors = {
-  "Mythical Immortal": "text-red-400",
-  "Mythical Glory": "text-brand-gold",
-  "Mythical Honor": "text-brand-purple",
-  Mythic: "text-purple-400",
-  Legend: "text-cyber-neon",
-  Epic: "text-blue-400",
-  Grandmaster: "text-green-400",
+const categoryIcons = {
+  account: "👤",
+  topup: "💎",
+  boosting: "📈",
+  currency: "💰",
+  items: "🎁",
+  coaching: "🎓",
+  service: "⚙️",
 };
 
 export default function SmartSearch() {
-  const {
-    query,
-    results,
-    loading,
-    showResults,
-    setQuery,
-    clearSearch,
-    closeResults,
-  } = useSearchStore();
+  const [focused, setFocused] = useState(false);
   const inputRef = useRef(null);
   const containerRef = useRef(null);
   const navigate = useNavigate();
+  const { formatPrice } = useCurrencyStore();
 
-  // Close results when clicking outside
+  const {
+    query,
+    results,
+    popularGames,
+    popularCategories,
+    loading,
+    showResults,
+    setQuery,
+    search,
+    clearSearch,
+    closeResults,
+    fetchPopularItems,
+  } = useSearchStore();
+
   useEffect(() => {
-    const handleClickOutside = (e) => {
-      if (containerRef.current && !containerRef.current.contains(e.target)) {
-        closeResults();
-      }
-    };
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
+    fetchPopularItems();
   }, []);
 
-  // Keyboard shortcut to focus search
+  useEffect(() => {
+    const handleClick = (e) => {
+      if (containerRef.current && !containerRef.current.contains(e.target)) {
+        closeResults();
+        setFocused(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClick);
+    return () => document.removeEventListener("mousedown", handleClick);
+  }, []);
+
   useEffect(() => {
     const handleKeyDown = (e) => {
       if ((e.ctrlKey || e.metaKey) && e.key === "k") {
@@ -60,42 +72,43 @@ export default function SmartSearch() {
     if (query.trim()) {
       navigate(`/marketplace?search=${encodeURIComponent(query.trim())}`);
       closeResults();
-      inputRef.current?.blur();
     }
   };
 
-  const handleResultClick = () => {
+  const handleItemClick = () => {
     closeResults();
     clearSearch();
   };
 
   return (
-    <div ref={containerRef} className="relative w-full max-w-md">
+    <div ref={containerRef} className="relative w-full max-w-2xl">
       <form onSubmit={handleSubmit}>
         <div className="relative">
-          <HiOutlineSearch className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-white/30" />
+          <HiOutlineSearch className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-text-muted" />
           <input
             ref={inputRef}
             type="text"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            onFocus={() => query.length >= 2 && setQuery(query)}
-            placeholder="Search accounts, heroes, ranks..."
-            className="input-glass pl-12 pr-10 py-2.5 w-full text-sm focus:border-brand-purple/50"
+            onFocus={() => {
+              setFocused(true);
+              if (query.length === 0) setQuery("");
+            }}
+            placeholder="Search games, accounts, items..."
+            className="w-full bg-arcane-surface border border-arcane-border rounded-2xl pl-12 pr-12 py-3 text-white placeholder-text-muted outline-none focus:border-arcane-purple/50 focus:ring-2 focus:ring-arcane-purple/20 transition-all text-sm"
           />
           {query && (
             <button
               type="button"
               onClick={clearSearch}
-              className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-white/30 hover:text-white/60 transition-colors"
+              className="absolute right-3 top-1/2 -translate-y-1/2 p-1.5 text-text-muted hover:text-white rounded-lg hover:bg-arcane-border transition-all"
             >
               <HiOutlineX className="w-4 h-4" />
             </button>
           )}
-          {/* Keyboard shortcut hint */}
-          {!query && (
+          {!query && !focused && (
             <div className="absolute right-3 top-1/2 -translate-y-1/2 hidden sm:flex items-center gap-1">
-              <kbd className="px-2 py-0.5 text-[10px] text-white/20 bg-white/5 rounded-md border border-glass-border">
+              <kbd className="px-2 py-0.5 text-[10px] text-text-muted bg-arcane-border rounded-md">
                 Ctrl+K
               </kbd>
             </div>
@@ -103,113 +116,159 @@ export default function SmartSearch() {
         </div>
       </form>
 
-      {/* Search Results Dropdown */}
+      {/* Results Dropdown */}
       <AnimatePresence>
-        {showResults && (
+        {(showResults || focused) && (
           <motion.div
             initial={{ opacity: 0, y: -10, scale: 0.98 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: -10, scale: 0.98 }}
-            transition={{ duration: 0.2 }}
-            className="absolute top-full left-0 right-0 mt-2 glass-modal p-2 z-50 max-h-[400px] overflow-y-auto"
+            transition={{ duration: 0.15 }}
+            className="absolute top-full left-0 right-0 mt-2 bg-arcane-elevated border border-arcane-border rounded-2xl shadow-2xl z-50 max-h-[70vh] overflow-y-auto"
           >
-            {loading ? (
-              <div className="p-4 text-center">
-                <div className="w-5 h-5 border-2 border-brand-purple/30 border-t-brand-purple rounded-full animate-spin mx-auto" />
-                <p className="text-white/30 text-xs mt-2">Searching...</p>
-              </div>
-            ) : results.length === 0 ? (
-              <div className="p-4 text-center">
-                <HiOutlineSearch className="w-8 h-8 text-white/20 mx-auto mb-2" />
-                <p className="text-white/40 text-sm">No results found</p>
-                <p className="text-white/20 text-xs mt-1">
-                  Try different keywords
-                </p>
+            {query.length >= 2 ? (
+              /* Search Results */
+              <div className="p-2">
+                {loading ? (
+                  <div className="p-4 space-y-3">
+                    {[...Array(3)].map((_, i) => (
+                      <div key={i} className="flex gap-3">
+                        <Skeleton className="w-12 h-12 rounded-xl" />
+                        <div className="flex-1 space-y-2">
+                          <Skeleton className="h-4 w-3/4" />
+                          <Skeleton className="h-3 w-1/2" />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : results.length === 0 ? (
+                  <div className="p-8 text-center">
+                    <HiOutlineSearch className="w-10 h-10 text-text-muted mx-auto mb-3" />
+                    <p className="text-text-secondary text-sm">
+                      No results found for "{query}"
+                    </p>
+                    <p className="text-text-muted text-xs mt-1">
+                      Try different keywords
+                    </p>
+                  </div>
+                ) : (
+                  <>
+                    {results.map((item) => (
+                      <Link
+                        key={item.id}
+                        to={`/listing/${item.id}`}
+                        onClick={handleItemClick}
+                        className="flex items-center gap-3 p-3 rounded-xl hover:bg-arcane-surface transition-all group"
+                      >
+                        <div className="w-12 h-12 rounded-xl bg-arcane-surface overflow-hidden flex-shrink-0">
+                          {item.images?.[0]?.url ? (
+                            <img
+                              src={item.images[0].url}
+                              alt=""
+                              className="w-full h-full object-cover"
+                            />
+                          ) : (
+                            <div className="w-full h-full flex items-center justify-center text-xl">
+                              {item.game?.icon || "🎮"}
+                            </div>
+                          )}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium text-white truncate group-hover:text-arcane-gold-light transition-colors">
+                            {item.title}
+                          </p>
+                          <div className="flex items-center gap-2 mt-0.5">
+                            <span className="text-xs text-text-muted">
+                              {item.game?.name}
+                            </span>
+                            <span className="text-xs px-1.5 py-0.5 rounded-md bg-arcane-border text-text-muted capitalize">
+                              {item.category?.type}
+                            </span>
+                          </div>
+                        </div>
+                        <span className="text-sm font-bold text-arcane-gold flex-shrink-0">
+                          {formatPrice(item.price)}
+                        </span>
+                      </Link>
+                    ))}
+                    <Link
+                      to={`/marketplace?search=${encodeURIComponent(query)}`}
+                      onClick={handleItemClick}
+                      className="flex items-center justify-center gap-2 p-3 mt-2 rounded-xl bg-arcane-purple/10 text-arcane-purple hover:bg-arcane-purple/20 transition-all text-sm font-medium"
+                    >
+                      View all results for "{query}"
+                    </Link>
+                  </>
+                )}
               </div>
             ) : (
-              <>
-                {/* Results */}
-                {results.map((account) => (
-                  <Link
-                    key={account.id}
-                    to={`/account/${account.id}`}
-                    onClick={handleResultClick}
-                    className="flex items-center gap-3 p-3 rounded-xl hover:bg-white/5 transition-colors group"
-                  >
-                    {/* Image */}
-                    <div className="w-12 h-12 rounded-lg bg-gradient-to-br from-brand-purple/20 to-brand-gold/10 flex items-center justify-center flex-shrink-0 overflow-hidden">
-                      {account.images && account.images.length > 0 ? (
-                        <img
-                          src={account.images[0].url}
-                          alt=""
-                          className="w-full h-full object-cover"
-                        />
-                      ) : (
-                        <HiOutlineSearch className="w-5 h-5 text-white/20" />
-                      )}
-                    </div>
-
-                    {/* Info */}
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-white truncate group-hover:text-brand-purple transition-colors">
-                        {account.title}
-                      </p>
-                      <div className="flex items-center gap-2 mt-0.5">
-                        <span
-                          className={`text-xs font-medium ${rankColors[account.rank] || "text-white/40"}`}
+              /* Popular Items Grid */
+              <div className="p-3">
+                {/* Popular Games */}
+                {popularGames.length > 0 && (
+                  <div className="mb-4">
+                    <p className="px-2 py-1.5 text-xs text-text-muted uppercase tracking-wider flex items-center gap-2">
+                      <HiOutlineFire className="w-3 h-3 text-arcane-gold" />
+                      Popular Games
+                    </p>
+                    <div className="grid grid-cols-4 gap-2">
+                      {popularGames.map((game) => (
+                        <Link
+                          key={game.id}
+                          to={`/marketplace?game=${game.slug}`}
+                          onClick={handleItemClick}
+                          className="flex flex-col items-center gap-2 p-3 rounded-xl hover:bg-arcane-surface transition-all group"
                         >
-                          {account.rank}
-                        </span>
-                        <span className="text-xs text-white/30">
-                          {account.hero_count} Heroes • {account.skin_count}{" "}
-                          Skins
-                        </span>
-                      </div>
+                          <div className="w-10 h-10 rounded-xl bg-arcane-surface flex items-center justify-center overflow-hidden">
+                            {game.icon ? (
+                              <img
+                                src={game.icon}
+                                alt=""
+                                className="w-7 h-7 object-contain"
+                              />
+                            ) : (
+                              <span className="text-lg font-bold text-arcane-purple">
+                                {game.name.charAt(0)}
+                              </span>
+                            )}
+                          </div>
+                          <span className="text-[11px] text-text-secondary text-center leading-tight group-hover:text-white transition-colors">
+                            {game.name}
+                          </span>
+                        </Link>
+                      ))}
                     </div>
+                  </div>
+                )}
 
-                    {/* Price or Status */}
-                    <div className="text-right flex-shrink-0">
-                      {account.status === "sold" ? (
-                        <span className="text-xs text-red-400 font-medium">
-                          SOLD
-                        </span>
-                      ) : account.status === "pending" ? (
-                        <span className="text-xs text-yellow-400 font-medium">
-                          PENDING
-                        </span>
-                      ) : (
-                        <span className="text-sm font-bold text-gradient-gold">
-                          ${account.price?.toLocaleString()}
-                        </span>
-                      )}
+                {/* Popular Categories */}
+                {popularCategories.length > 0 && (
+                  <div>
+                    <p className="px-2 py-1.5 text-xs text-text-muted uppercase tracking-wider">
+                      Popular Categories
+                    </p>
+                    <div className="grid grid-cols-4 gap-2">
+                      {popularCategories.map((cat) => (
+                        <Link
+                          key={cat.id}
+                          to={`/marketplace?game=${cat.game?.slug}&category=${cat.slug}`}
+                          onClick={handleItemClick}
+                          className="flex flex-col items-center gap-2 p-3 rounded-xl hover:bg-arcane-surface transition-all group"
+                        >
+                          <div className="w-10 h-10 rounded-xl bg-arcane-surface flex items-center justify-center text-lg">
+                            {categoryIcons[cat.type] || "📦"}
+                          </div>
+                          <span className="text-[11px] text-text-secondary text-center leading-tight group-hover:text-white transition-colors">
+                            {cat.name}
+                          </span>
+                        </Link>
+                      ))}
                     </div>
-                  </Link>
-                ))}
-
-                {/* View All Results */}
-                <Link
-                  to={`/marketplace?search=${encodeURIComponent(query)}`}
-                  onClick={handleResultClick}
-                  className="flex items-center justify-center gap-2 p-3 mt-2 rounded-xl bg-brand-purple/10 text-brand-purple hover:bg-brand-purple/20 transition-colors text-sm font-medium"
-                >
-                  View all results for "{query}"
-                </Link>
-              </>
+                  </div>
+                )}
+              </div>
             )}
           </motion.div>
-        )}
-      </AnimatePresence>
-
-      {/* Backdrop */}
-      <AnimatePresence>
-        {showResults && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            onClick={closeResults}
-            className="fixed inset-0 z-40"
-          />
         )}
       </AnimatePresence>
     </div>

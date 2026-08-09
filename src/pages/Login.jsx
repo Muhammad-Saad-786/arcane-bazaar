@@ -1,28 +1,45 @@
 import { useState, useEffect } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { HiOutlineMail, HiOutlineEye, HiOutlineEyeOff } from "react-icons/hi";
+import {
+  HiOutlineMail,
+  HiOutlineLockClosed,
+  HiOutlineEye,
+  HiOutlineEyeOff,
+} from "react-icons/hi";
 import { FcGoogle } from "react-icons/fc";
-import toast from "react-hot-toast";
+import { FaFacebook, FaDiscord } from "react-icons/fa";
 import useAuthStore from "../stores/useAuthStore";
-import Button from "../components/ui/Button";
 import Logo from "../components/shared/Logo";
+import Button from "../components/ui/Button";
 
 const loginSchema = z.object({
-  email: z.string().email("Please enter a valid email"),
-  password: z.string().min(6, "Password must be at least 6 characters"),
+  email: z
+    .string()
+    .min(1, "Email is required")
+    .email("Please enter a valid email"),
+  password: z
+    .string()
+    .min(1, "Password is required")
+    .min(6, "Password must be at least 6 characters"),
 });
 
 export default function Login() {
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const { signIn, signInWithGoogle, user, clearError } = useAuthStore();
+  const [loginError, setLoginError] = useState("");
+  const {
+    signIn,
+    signInWithGoogle,
+    signInWithFacebook,
+    signInWithDiscord,
+    user,
+  } = useAuthStore();
   const navigate = useNavigate();
   const location = useLocation();
-
   const from = location.state?.from?.pathname || "/";
 
   const {
@@ -33,160 +50,135 @@ export default function Login() {
     resolver: zodResolver(loginSchema),
   });
 
-  // Redirect if already logged in
   useEffect(() => {
     if (user) navigate(from, { replace: true });
   }, [user]);
 
   const onSubmit = async (data) => {
     setIsLoading(true);
-    clearError();
-
+    setLoginError("");
     const result = await signIn(data.email, data.password);
-
     if (result.success) {
-      toast.success("Welcome back!", {
-        icon: "👋",
-        style: {
-          background: "rgba(10, 10, 10, 0.9)",
-          color: "#fff",
-          border: "1px solid rgba(139, 92, 246, 0.3)",
-        },
-      });
       navigate(from, { replace: true });
     } else {
-      toast.error(result.error || "Invalid email or password");
+      setLoginError(result.error || "Invalid email or password");
     }
-
     setIsLoading(false);
   };
 
-  const handleGoogleSignIn = async () => {
-    clearError();
-    const result = await signInWithGoogle();
-    if (!result.success) {
-      toast.error(result.error || "Google sign in failed");
-    }
-  };
-
   return (
-    <div className="min-h-screen flex items-center justify-center px-4 py-20 relative">
-      {/* Background Orbs */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <motion.div
-          animate={{ scale: [1, 1.2, 1], opacity: [0.2, 0.3, 0.2] }}
-          transition={{ duration: 8, repeat: Infinity }}
-          className="absolute -top-40 -left-40 w-[500px] h-[500px] rounded-full"
-          style={{
-            background:
-              "radial-gradient(circle, rgba(139, 92, 246, 0.15), transparent 70%)",
-          }}
-        />
-        <motion.div
-          animate={{ scale: [1.2, 1, 1.2], opacity: [0.2, 0.3, 0.2] }}
-          transition={{ duration: 10, repeat: Infinity }}
-          className="absolute -bottom-40 -right-40 w-[500px] h-[500px] rounded-full"
-          style={{
-            background:
-              "radial-gradient(circle, rgba(245, 158, 11, 0.1), transparent 70%)",
-          }}
-        />
-      </div>
-
+    <div className="min-h-screen flex items-center justify-center px-4 py-20">
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5 }}
-        className="relative w-full max-w-md"
+        className="w-full max-w-md"
       >
-        {/* Card Glow */}
-        <div className="absolute -inset-1 bg-gradient-to-r from-brand-purple/30 via-brand-gold/20 to-brand-purple/30 rounded-3xl blur-xl" />
+        {/* Logo */}
+        <div className="flex justify-center mb-8">
+          <Logo size="lg" />
+        </div>
 
-        {/* Login Card */}
-        <div className="relative glass-modal p-8 sm:p-10">
-          {/* Logo */}
-          <div className="flex justify-center mb-8">
-            <Logo size="lg" />
-          </div>
-
-          {/* Title */}
+        {/* Card */}
+        <div className="glass-card p-6 sm:p-8">
           <div className="text-center mb-8">
             <h1 className="text-2xl font-display font-extrabold text-white">
               Welcome Back
             </h1>
-            <p className="mt-2 text-white/40 text-sm">
-              Sign in to your ZAZA Store account
+            <p className="text-text-muted text-sm mt-2">
+              Sign in to your Arcane Bazaar account
             </p>
           </div>
 
-          {/* Google Sign In */}
-          <motion.button
-            whileHover={{ scale: 1.02 }}
-            whileTap={{ scale: 0.98 }}
-            onClick={handleGoogleSignIn}
-            className="w-full flex items-center justify-center gap-3 px-4 py-3.5 glass-card hover:border-brand-purple/30 transition-all duration-300 mb-6"
-          >
-            <FcGoogle className="w-5 h-5" />
-            <span className="text-white/80 font-medium text-sm">
+          {/* Social Login */}
+          <div className="space-y-3 mb-6">
+            <button
+              onClick={signInWithGoogle}
+              className="w-full flex items-center justify-center gap-3 px-4 py-3 rounded-xl bg-arcane-surface border border-arcane-border hover:border-arcane-purple/30 text-white font-medium text-sm transition-all"
+            >
+              <FcGoogle className="w-5 h-5" />
               Continue with Google
-            </span>
-          </motion.button>
+            </button>
+
+            <button
+              onClick={signInWithDiscord}
+              className="w-full flex items-center justify-center gap-3 px-4 py-3 rounded-xl bg-[#5865F2]/10 border border-[#5865F2]/20 hover:border-[#5865F2]/40 text-white font-medium text-sm transition-all"
+            >
+              <FaDiscord className="w-5 h-5 text-[#5865F2]" />
+              Continue with Discord
+            </button>
+
+            <button
+              onClick={signInWithFacebook}
+              className="w-full flex items-center justify-center gap-3 px-4 py-3 rounded-xl bg-[#1877F2]/10 border border-[#1877F2]/20 hover:border-[#1877F2]/40 text-white font-medium text-sm transition-all"
+            >
+              <FaFacebook className="w-5 h-5 text-[#1877F2]" />
+              Continue with Facebook
+            </button>
+          </div>
 
           {/* Divider */}
           <div className="relative mb-6">
             <div className="absolute inset-0 flex items-center">
-              <div className="w-full border-t border-glass-border" />
+              <div className="w-full border-t border-arcane-border" />
             </div>
             <div className="relative flex justify-center text-xs">
-              <span className="px-4 bg-brand-darker text-white/30">
+              <span className="px-4 bg-[#141319] text-text-muted">
                 or continue with email
               </span>
             </div>
           </div>
 
-          {/* Form */}
-          <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
+          {/* Email Form */}
+          <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+            {/* Login Error */}
+            {loginError && (
+              <div className="p-3 rounded-xl bg-danger/10 border border-danger/20 text-danger text-sm text-center">
+                {loginError}
+              </div>
+            )}
+
             {/* Email */}
             <div>
-              <label className="block text-sm font-medium text-white/60 mb-2">
+              <label className="block text-sm font-medium text-text-secondary mb-2">
                 Email Address
               </label>
               <div className="relative">
-                <HiOutlineMail className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-white/30" />
+                <HiOutlineMail className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-text-muted z-10" />
                 <input
                   type="email"
                   {...register("email")}
                   placeholder="you@example.com"
-                  className="input-glass pl-12 pr-4 py-3 w-full"
+                  className={`w-full bg-arcane-surface border rounded-xl py-3.5 pl-12 pr-4 text-white placeholder-text-muted outline-none focus:border-arcane-purple/50 focus:ring-2 focus:ring-arcane-purple/20 transition-all text-sm ${
+                    errors.email ? "border-danger" : "border-arcane-border"
+                  }`}
                 />
               </div>
               {errors.email && (
-                <motion.p
-                  initial={{ opacity: 0, y: -5 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  className="mt-1 text-red-400 text-xs"
-                >
+                <p className="text-danger text-xs mt-1.5">
                   {errors.email.message}
-                </motion.p>
+                </p>
               )}
             </div>
 
             {/* Password */}
             <div>
-              <label className="block text-sm font-medium text-white/60 mb-2">
+              <label className="block text-sm font-medium text-text-secondary mb-2">
                 Password
               </label>
               <div className="relative">
+                <HiOutlineLockClosed className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-text-muted z-10" />
                 <input
                   type={showPassword ? "text" : "password"}
                   {...register("password")}
                   placeholder="Enter your password"
-                  className="input-glass pl-12 pr-12 py-3 w-full"
+                  className={`w-full bg-arcane-surface border rounded-xl py-3.5 pl-12 pr-12 text-white placeholder-text-muted outline-none focus:border-arcane-purple/50 focus:ring-2 focus:ring-arcane-purple/20 transition-all text-sm ${
+                    errors.password ? "border-danger" : "border-arcane-border"
+                  }`}
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-4 top-1/2 -translate-y-1/2 text-white/30 hover:text-white/60 transition-colors"
+                  className="absolute right-4 top-1/2 -translate-y-1/2 text-text-muted hover:text-white z-10"
                 >
                   {showPassword ? (
                     <HiOutlineEyeOff className="w-5 h-5" />
@@ -196,13 +188,9 @@ export default function Login() {
                 </button>
               </div>
               {errors.password && (
-                <motion.p
-                  initial={{ opacity: 0, y: -5 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  className="mt-1 text-red-400 text-xs"
-                >
+                <p className="text-danger text-xs mt-1.5">
                   {errors.password.message}
-                </motion.p>
+                </p>
               )}
             </div>
 
@@ -210,7 +198,7 @@ export default function Login() {
             <div className="flex justify-end">
               <Link
                 to="/forgot-password"
-                className="text-sm text-brand-purple hover:text-brand-gold transition-colors"
+                className="text-sm text-arcane-purple hover:text-arcane-gold-light transition-colors"
               >
                 Forgot password?
               </Link>
@@ -225,10 +213,10 @@ export default function Login() {
               disabled={isLoading}
             >
               {isLoading ? (
-                <div className="flex items-center gap-2">
+                <span className="flex items-center gap-2">
                   <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                   Signing in...
-                </div>
+                </span>
               ) : (
                 "Sign In"
               )}
@@ -236,11 +224,11 @@ export default function Login() {
           </form>
 
           {/* Register Link */}
-          <p className="mt-6 text-center text-sm text-white/40">
+          <p className="mt-6 text-center text-sm text-text-muted">
             Don't have an account?{" "}
             <Link
               to="/register"
-              className="text-brand-purple hover:text-brand-gold font-medium transition-colors"
+              className="text-arcane-purple hover:text-arcane-gold-light font-medium transition-colors"
             >
               Create one
             </Link>
