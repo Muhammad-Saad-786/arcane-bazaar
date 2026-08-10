@@ -93,13 +93,13 @@ export default function HeroSection() {
             <Link to="/marketplace">
               <Button variant="primary" size="lg">
                 <HiOutlineSearch className="w-5 h-5" />
-                Browse Marketplace
+                Browse Shop
               </Button>
             </Link>
-            <Link to="/sell">
+            <Link to="/become-seller">
               <Button variant="gold" size="lg">
                 <HiOutlineLightningBolt className="w-5 h-5" />
-                Start Selling
+                Become a Seller
               </Button>
             </Link>
           </motion.div>

@@ -6,34 +6,28 @@ import Layout from "./components/layout/Layout";
 import ProtectedRoute from "./components/auth/ProtectedRoute";
 import Spinner from "./components/ui/Spinner";
 
-// Public Pages
+// Public Pages - Keep lazy loaded (rarely visited)
 import Home from "./pages/Home";
-import Login from "./pages/Login";
-import Register from "./pages/Register";
-import ForgotPassword from "./pages/ForgotPassword";
-import ResetPassword from "./pages/ResetPassword";
-import AuthCallback from "./pages/AuthCallback";
+const Login = lazy(() => import("./pages/Login"));
+const Register = lazy(() => import("./pages/Register"));
+const ForgotPassword = lazy(() => import("./pages/ForgotPassword"));
+const ResetPassword = lazy(() => import("./pages/ResetPassword"));
+const AuthCallback = lazy(() => import("./pages/AuthCallback"));
+const BecomeSeller = lazy(() => import("./pages/BecomeSeller"));
 
-// Dashboard Layout
-const DashboardLayout = lazy(
-  () => import("./components/dashboard/DashboardLayout"),
-);
+// Dashboard - DIRECT imports (no lazy loading for instant navigation)
+import DashboardLayout from "./components/dashboard/DashboardLayout";
+import DashboardOverview from "./pages/dashboard/DashboardOverview";
+import Orders from "./pages/dashboard/Orders";
+import Wishlist from "./pages/dashboard/Wishlist";
+import Offers from "./pages/dashboard/Offers";
+import Boosting from "./pages/dashboard/Boosting";
+import Messages from "./pages/dashboard/Messages";
+import Notifications from "./pages/dashboard/Notifications";
+import ProfileSettings from "./pages/dashboard/ProfileSettings";
+import Wallet from "./pages/dashboard/Wallet";
+import Loyalty from "./pages/dashboard/Loyalty";
 
-// Dashboard Pages
-const DashboardOverview = lazy(
-  () => import("./pages/dashboard/DashboardOverview"),
-);
-const Orders = lazy(() => import("./pages/dashboard/Orders"));
-const Wishlist = lazy(() => import("./pages/dashboard/Wishlist"));
-const Offers = lazy(() => import("./pages/dashboard/Offers"));
-const Boosting = lazy(() => import("./pages/dashboard/Boosting"));
-const Messages = lazy(() => import("./pages/dashboard/Messages"));
-const Notifications = lazy(() => import("./pages/dashboard/Notifications"));
-const ProfileSettings = lazy(() => import("./pages/dashboard/ProfileSettings"));
-const Wallet = lazy(() => import("./pages/dashboard/Wallet"));
-const Loyalty = lazy(() => import("./pages/dashboard/Loyalty"));
-
-// Loading Fallback
 const PageLoader = () => (
   <div className="min-h-screen flex items-center justify-center bg-arcane-dark">
     <Spinner size="lg" />
@@ -42,6 +36,7 @@ const PageLoader = () => (
 
 function App() {
   const initialize = useAuthStore((state) => state.initialize);
+  const user = useAuthStore((state) => state.user);
 
   useEffect(() => {
     initialize();
@@ -69,9 +64,10 @@ function App() {
             <Route path="/forgot-password" element={<ForgotPassword />} />
             <Route path="/reset-password" element={<ResetPassword />} />
             <Route path="/auth/callback" element={<AuthCallback />} />
+            <Route path="/become-seller" element={<BecomeSeller />} />
           </Route>
 
-          {/* Dashboard Routes */}
+          {/* Dashboard Routes - NO lazy loading */}
           <Route
             path="/dashboard"
             element={
