@@ -30,7 +30,7 @@ export default function LanguageSelector() {
         className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-arcane-surface border border-arcane-border hover:border-arcane-purple/30 transition-all text-sm"
       >
         <HiOutlineGlobe className="w-4 h-4 text-text-muted" />
-        <span className="text-text-secondary text-xs font-medium hidden sm:inline">
+        <span className="text-white text-xs font-medium hidden sm:inline">
           {current?.code.toUpperCase()}
         </span>
       </button>
@@ -52,10 +52,8 @@ export default function LanguageSelector() {
                     setLanguage(lang.code);
                     setIsOpen(false);
                   }}
-                  className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm transition-all ${
-                    currentLang === lang.code
-                      ? "bg-arcane-purple/20 text-white"
-                      : "text-text-secondary hover:bg-arcane-surface hover:text-white"
+                  className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm transition-all text-white hover:bg-arcane-surface ${
+                    currentLang === lang.code ? "bg-arcane-purple/20" : ""
                   }`}
                 >
                   <span className="text-lg">{lang.flag}</span>

@@ -25,8 +25,8 @@ export default function CurrencySelector() {
         onClick={() => setIsOpen(!isOpen)}
         className="flex items-center gap-2 px-3 py-2 rounded-xl bg-arcane-surface border border-arcane-border hover:border-arcane-purple/30 transition-all text-sm"
       >
-        <span>{current?.flag}</span>
-        <span className="text-text-secondary">{current?.code}</span>
+        <span className="text-text-muted">{current?.flag}</span>
+        <span className="text-white text-sm">{current?.code}</span>
         <HiOutlineChevronDown
           className={`w-4 h-4 text-text-muted transition-transform ${isOpen ? "rotate-180" : ""}`}
         />
@@ -52,15 +52,15 @@ export default function CurrencySelector() {
                     setCurrency(currency.code);
                     setIsOpen(false);
                   }}
-                  className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm transition-all ${
+                  className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm transition-all text-white hover:bg-arcane-surface ${
                     selectedCurrency === currency.code
-                      ? "bg-arcane-purple/20 text-white"
-                      : "text-text-secondary hover:bg-arcane-surface hover:text-white"
+                      ? "bg-arcane-purple/20"
+                      : ""
                   }`}
                 >
                   <span className="text-lg">{currency.flag}</span>
                   <div className="flex-1 text-left">
-                    <p className="font-medium">{currency.code}</p>
+                    <p className="font-medium text-white">{currency.code}</p>
                     <p className="text-xs text-text-muted">{currency.name}</p>
                   </div>
                   {selectedCurrency === currency.code && (

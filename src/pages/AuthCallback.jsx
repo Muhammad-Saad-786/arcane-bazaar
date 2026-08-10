@@ -13,17 +13,8 @@ export default function AuthCallback() {
     // Supabase OAuth puts the tokens in the URL hash
     const handleAuth = async () => {
       try {
-        console.log("Full URL:", window.location.href);
-        console.log("Hash:", window.location.hash);
-
         // If hash exists with access_token, Supabase will handle it
         const { data, error } = await supabase.auth.getSession();
-
-        console.log("Session:", {
-          hasSession: !!data.session,
-          user: data.session?.user?.email,
-          error: error?.message,
-        });
 
         if (data.session?.user) {
           setStatus("Loading profile...");

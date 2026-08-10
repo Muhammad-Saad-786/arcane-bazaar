@@ -164,11 +164,7 @@ export default function Navbar() {
                   >
                     <HiOutlineBell className="w-5 h-5" />
                   </Link>
-                  <Link to="/sell" className="hidden sm:block">
-                    <Button variant="gold" size="sm">
-                      Sell
-                    </Button>
-                  </Link>
+
                   <UserMenu />
                 </>
               ) : (
@@ -210,7 +206,7 @@ export default function Navbar() {
                   className={`flex items-center gap-1 px-4 py-2 rounded-xl text-sm font-medium transition-all ${
                     activeDropdown === cat.key
                       ? "text-white bg-arcane-surface"
-                      : "text-text-secondary hover:text-white hover:bg-arcane-surface/50"
+                      : "text-white hover:bg-arcane-surface/50"
                   }`}
                 >
                   {cat.label}
