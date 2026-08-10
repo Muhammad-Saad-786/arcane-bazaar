@@ -105,11 +105,23 @@ const useAuthStore = create((set, get) => ({
 
   // Google Sign In
   signInWithGoogle: async () => {
-    const { error } = await supabase.auth.signInWithOAuth({
-      provider: "google",
-      options: { redirectTo: `${window.location.origin}/auth/callback` },
-    });
-    if (error) toast.error(error.message);
+    try {
+      const { data, error } = await supabase.auth.signInWithOAuth({
+        provider: "google",
+        options: {
+          redirectTo: window.location.origin + "/auth/callback",
+        },
+      });
+
+      if (error) {
+        console.error("Google sign in error:", error.message);
+        toast.error("Failed to sign in with Google: " + error.message);
+      }
+      // No return - Supabase handles the redirect
+    } catch (error) {
+      console.error("Google sign in error:", error);
+      toast.error("Failed to sign in with Google");
+    }
   },
 
   // Facebook Sign In
