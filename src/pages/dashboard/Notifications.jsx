@@ -6,6 +6,7 @@ import useAuthStore from "../../stores/useAuthStore";
 import GlassCard from "../../components/ui/GlassCard";
 import Spinner from "../../components/ui/Spinner";
 import Button from "../../components/ui/Button";
+import SEO from "../../components/ui/SEO";
 import {
   HiOutlineBell,
   HiOutlineCheck,
@@ -187,182 +188,187 @@ export default function Notifications() {
     );
 
   return (
-    <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      className="space-y-6 max-w-2xl"
-    >
-      {/* Header */}
-      <div className="flex items-center justify-between flex-wrap gap-4">
-        <div>
-          <h1 className="text-2xl font-display font-extrabold text-white">
-            Notifications
-            {unreadCount > 0 && (
-              <span className="ml-2 px-2 py-1 bg-arcane-purple text-white text-sm rounded-full">
-                {unreadCount} new
-              </span>
-            )}
-          </h1>
-          <p className="text-text-muted text-sm mt-1">
-            Stay updated with your orders and account activity
-          </p>
-        </div>
-        <div className="flex gap-2">
-          {unreadCount > 0 && (
-            <Button
-              onClick={markAllAsRead}
-              variant="ghost"
-              size="sm"
-              disabled={markingAll}
-            >
-              <HiOutlineCheck className="w-4 h-4" /> Mark All Read
-            </Button>
-          )}
-          {notifications.length > 0 && (
-            <Button onClick={deleteAll} variant="ghost" size="sm">
-              <HiOutlineTrash className="w-4 h-4" /> Clear All
-            </Button>
-          )}
-        </div>
-      </div>
-
-      {/* Filter Tabs */}
-      <div className="flex gap-2 flex-wrap">
-        {filterTabs.map((tab) => {
-          const count =
-            tab.key === "all"
-              ? notifications.length
-              : tab.key === "unread"
-                ? unreadCount
-                : notifications.filter((n) => n.type === tab.key).length;
-          if (count === 0 && tab.key !== "all") return null;
-          return (
-            <button
-              key={tab.key}
-              onClick={() => setActiveFilter(tab.key)}
-              className={`px-4 py-2 rounded-xl text-sm font-medium transition-all ${
-                activeFilter === tab.key
-                  ? "bg-arcane-purple/20 text-arcane-purple"
-                  : "text-white hover:bg-arcane-surface"
-              }`}
-            >
-              {tab.label} ({count})
-            </button>
-          );
-        })}
-      </div>
-
-      {/* Notifications List */}
-      {filteredNotifications.length === 0 ? (
-        <GlassCard className="p-12 text-center">
-          <div className="w-16 h-16 rounded-2xl bg-arcane-purple/10 flex items-center justify-center mx-auto mb-4">
-            <HiOutlineBell className="w-8 h-8 text-arcane-purple" />
+    <>
+      <SEO title="All Notifications" />
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        className="space-y-6 max-w-2xl"
+      >
+        {/* Header */}
+        <div className="flex items-center justify-between flex-wrap gap-4">
+          <div>
+            <h1 className="text-2xl font-display font-extrabold text-white">
+              Notifications
+              {unreadCount > 0 && (
+                <span className="ml-2 px-2 py-1 bg-arcane-purple text-white text-sm rounded-full">
+                  {unreadCount} new
+                </span>
+              )}
+            </h1>
+            <p className="text-text-muted text-sm mt-1">
+              Stay updated with your orders and account activity
+            </p>
           </div>
-          <h3 className="text-lg font-semibold text-white">
-            {activeFilter === "unread"
-              ? "No unread notifications"
-              : "No notifications yet"}
-          </h3>
-          <p className="text-text-muted text-sm mt-1">
-            {activeFilter === "unread"
-              ? "You're all caught up!"
-              : "Notifications about your orders and account will appear here"}
-          </p>
-        </GlassCard>
-      ) : (
-        <div className="space-y-2">
-          <AnimatePresence>
-            {filteredNotifications.map((n) => {
-              const config = typeConfig[n.type] || typeConfig.default;
-              const IconComponent = config.icon;
-              const link = getNotificationLink(n);
-
-              return (
-                <motion.div
-                  key={n.id}
-                  initial={{ opacity: 0, y: -10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, x: 50 }}
-                  transition={{ duration: 0.2 }}
-                >
-                  <div
-                    className={`relative p-4 rounded-xl border transition-all ${config.bg} border-arcane-border ${!n.read ? "ring-1 ring-arcane-purple/20" : "opacity-70"}`}
-                  >
-                    <div className="flex items-start gap-3">
-                      <div
-                        className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 ${config.bg}`}
-                      >
-                        <IconComponent className={`w-5 h-5 ${config.color}`} />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center justify-between gap-2">
-                          <p className="text-sm font-medium text-white truncate">
-                            {n.title}
-                          </p>
-                          <span className="text-xs text-text-muted flex-shrink-0">
-                            {getTimeAgo(n.created_at)}
-                          </span>
-                        </div>
-                        <p className="text-xs text-text-secondary mt-1 line-clamp-2">
-                          {n.message}
-                        </p>
-                        <div className="flex items-center gap-3 mt-2">
-                          {link && (
-                            <Link
-                              to={link}
-                              className="text-xs text-arcane-purple hover:text-arcane-gold-light transition-colors"
-                            >
-                              View Details →
-                            </Link>
-                          )}
-                          {!n.read && (
-                            <button
-                              onClick={() => markAsRead(n.id)}
-                              className="text-xs text-white hover:text-arcane-purple transition-colors"
-                            >
-                              Mark as read
-                            </button>
-                          )}
-                          <button
-                            onClick={() => deleteNotification(n.id)}
-                            disabled={deletingId === n.id}
-                            className="text-xs text-text-muted hover:text-danger transition-colors ml-auto"
-                          >
-                            {deletingId === n.id ? (
-                              <div className="w-3 h-3 border border-danger/30 border-t-danger rounded-full animate-spin" />
-                            ) : (
-                              <HiOutlineTrash className="w-3 h-3" />
-                            )}
-                          </button>
-                        </div>
-                      </div>
-                      {!n.read && (
-                        <div className="w-2 h-2 rounded-full bg-arcane-purple flex-shrink-0 mt-1.5" />
-                      )}
-                    </div>
-                  </div>
-                </motion.div>
-              );
-            })}
-          </AnimatePresence>
+          <div className="flex gap-2">
+            {unreadCount > 0 && (
+              <Button
+                onClick={markAllAsRead}
+                variant="ghost"
+                size="sm"
+                disabled={markingAll}
+              >
+                <HiOutlineCheck className="w-4 h-4" /> Mark All Read
+              </Button>
+            )}
+            {notifications.length > 0 && (
+              <Button onClick={deleteAll} variant="ghost" size="sm">
+                <HiOutlineTrash className="w-4 h-4" /> Clear All
+              </Button>
+            )}
+          </div>
         </div>
-      )}
 
-      {/* Empty Filter State */}
-      {filteredNotifications.length === 0 && notifications.length > 0 && (
-        <GlassCard className="p-8 text-center">
-          <HiOutlineFilter className="w-10 h-10 text-text-muted mx-auto mb-3" />
-          <p className="text-text-muted text-sm">
-            No notifications match this filter
-          </p>
-          <button
-            onClick={() => setActiveFilter("all")}
-            className="text-arcane-purple text-sm mt-1 hover:text-arcane-gold-light"
-          >
-            Show all notifications
-          </button>
-        </GlassCard>
-      )}
-    </motion.div>
+        {/* Filter Tabs */}
+        <div className="flex gap-2 flex-wrap">
+          {filterTabs.map((tab) => {
+            const count =
+              tab.key === "all"
+                ? notifications.length
+                : tab.key === "unread"
+                  ? unreadCount
+                  : notifications.filter((n) => n.type === tab.key).length;
+            if (count === 0 && tab.key !== "all") return null;
+            return (
+              <button
+                key={tab.key}
+                onClick={() => setActiveFilter(tab.key)}
+                className={`px-4 py-2 rounded-xl text-sm font-medium transition-all ${
+                  activeFilter === tab.key
+                    ? "bg-arcane-purple/20 text-arcane-purple"
+                    : "text-white hover:bg-arcane-surface"
+                }`}
+              >
+                {tab.label} ({count})
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Notifications List */}
+        {filteredNotifications.length === 0 ? (
+          <GlassCard className="p-12 text-center">
+            <div className="w-16 h-16 rounded-2xl bg-arcane-purple/10 flex items-center justify-center mx-auto mb-4">
+              <HiOutlineBell className="w-8 h-8 text-arcane-purple" />
+            </div>
+            <h3 className="text-lg font-semibold text-white">
+              {activeFilter === "unread"
+                ? "No unread notifications"
+                : "No notifications yet"}
+            </h3>
+            <p className="text-text-muted text-sm mt-1">
+              {activeFilter === "unread"
+                ? "You're all caught up!"
+                : "Notifications about your orders and account will appear here"}
+            </p>
+          </GlassCard>
+        ) : (
+          <div className="space-y-2">
+            <AnimatePresence>
+              {filteredNotifications.map((n) => {
+                const config = typeConfig[n.type] || typeConfig.default;
+                const IconComponent = config.icon;
+                const link = getNotificationLink(n);
+
+                return (
+                  <motion.div
+                    key={n.id}
+                    initial={{ opacity: 0, y: -10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, x: 50 }}
+                    transition={{ duration: 0.2 }}
+                  >
+                    <div
+                      className={`relative p-4 rounded-xl border transition-all ${config.bg} border-arcane-border ${!n.read ? "ring-1 ring-arcane-purple/20" : "opacity-70"}`}
+                    >
+                      <div className="flex items-start gap-3">
+                        <div
+                          className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 ${config.bg}`}
+                        >
+                          <IconComponent
+                            className={`w-5 h-5 ${config.color}`}
+                          />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center justify-between gap-2">
+                            <p className="text-sm font-medium text-white truncate">
+                              {n.title}
+                            </p>
+                            <span className="text-xs text-text-muted flex-shrink-0">
+                              {getTimeAgo(n.created_at)}
+                            </span>
+                          </div>
+                          <p className="text-xs text-text-secondary mt-1 line-clamp-2">
+                            {n.message}
+                          </p>
+                          <div className="flex items-center gap-3 mt-2">
+                            {link && (
+                              <Link
+                                to={link}
+                                className="text-xs text-arcane-purple hover:text-arcane-gold-light transition-colors"
+                              >
+                                View Details →
+                              </Link>
+                            )}
+                            {!n.read && (
+                              <button
+                                onClick={() => markAsRead(n.id)}
+                                className="text-xs text-white hover:text-arcane-purple transition-colors"
+                              >
+                                Mark as read
+                              </button>
+                            )}
+                            <button
+                              onClick={() => deleteNotification(n.id)}
+                              disabled={deletingId === n.id}
+                              className="text-xs text-text-muted hover:text-danger transition-colors ml-auto"
+                            >
+                              {deletingId === n.id ? (
+                                <div className="w-3 h-3 border border-danger/30 border-t-danger rounded-full animate-spin" />
+                              ) : (
+                                <HiOutlineTrash className="w-3 h-3" />
+                              )}
+                            </button>
+                          </div>
+                        </div>
+                        {!n.read && (
+                          <div className="w-2 h-2 rounded-full bg-arcane-purple flex-shrink-0 mt-1.5" />
+                        )}
+                      </div>
+                    </div>
+                  </motion.div>
+                );
+              })}
+            </AnimatePresence>
+          </div>
+        )}
+
+        {/* Empty Filter State */}
+        {filteredNotifications.length === 0 && notifications.length > 0 && (
+          <GlassCard className="p-8 text-center">
+            <HiOutlineFilter className="w-10 h-10 text-text-muted mx-auto mb-3" />
+            <p className="text-text-muted text-sm">
+              No notifications match this filter
+            </p>
+            <button
+              onClick={() => setActiveFilter("all")}
+              className="text-arcane-purple text-sm mt-1 hover:text-arcane-gold-light"
+            >
+              Show all notifications
+            </button>
+          </GlassCard>
+        )}
+      </motion.div>
+    </>
   );
 }

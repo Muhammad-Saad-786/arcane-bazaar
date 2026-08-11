@@ -61,23 +61,27 @@ const useAuthStore = create((set, get) => ({
         password,
         options: {
           data: { username },
-          emailRedirectTo: `${window.location.origin}/auth/callback`,
         },
       });
 
-      if (error) throw error;
+      if (error) {
+        console.error("SignUp error:", error.message);
+        toast.error(error.message);
+        return { success: false, error: error.message };
+      }
 
       if (data?.user?.identities?.length === 0) {
         toast.error("This email is already registered");
-        return { success: false, error: "Email already registered" };
+        return { success: false };
       }
 
-      toast.success("Account created! Please check your email to verify.");
-      return { success: true, user: data.user };
+      console.log("SignUp success, user:", data.user);
+      toast.success("Verification code sent to your email!");
+      return { success: true, email: email };
     } catch (error) {
-      set({ error: error.message });
-      toast.error(error.message);
-      return { success: false, error: error.message };
+      console.error("SignUp error:", error);
+      toast.error("Registration failed");
+      return { success: false };
     } finally {
       set({ loading: false });
     }

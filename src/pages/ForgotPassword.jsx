@@ -62,13 +62,13 @@ export default function ForgotPassword() {
                     Email Address
                   </label>
                   <div className="relative">
-                    <HiOutlineMail className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-text-muted" />
+                    <HiOutlineMail className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-text-muted z-10" />
                     <input
                       type="email"
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
                       placeholder="you@example.com"
-                      className="input-glass pl-12"
+                      className="w-full bg-arcane-surface border border-arcane-border rounded-xl py-3.5 pl-12 pr-4 text-white placeholder-text-muted outline-none focus:border-arcane-purple/50 focus:ring-2 focus:ring-arcane-purple/20 transition-all text-sm"
                       required
                     />
                   </div>

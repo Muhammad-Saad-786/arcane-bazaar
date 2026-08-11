@@ -48,7 +48,14 @@ export default function GameSelector({ selected, onSelect, showAll = true }) {
           }`}
         >
           <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-gradient-to-br from-arcane-purple/30 to-arcane-gold/20 flex items-center justify-center">
-            <span className="text-lg">🎮</span>
+            <img
+              src="/all-games.png"
+              alt="All Games"
+              className="w-8 h-8 object-contain"
+              onError={(e) => {
+                e.target.style.display = "none";
+              }}
+            />
           </div>
           <span className="text-xs text-text-secondary whitespace-nowrap">
             All Games

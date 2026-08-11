@@ -53,7 +53,7 @@ export default function UserMenu() {
         onClick={() => setIsOpen(!isOpen)}
         className="flex items-center gap-2 p-1.5 rounded-xl hover:bg-arcane-surface transition-all border border-transparent hover:border-arcane-border"
       >
-        <div className="w-8 h-8 rounded-full bg-gradient-to-br from-arcane-purple to-arcane-gold flex items-center justify-center text-sm font-bold text-white overflow-hidden">
+        <div className="w-8 h-8 rounded-full bg-arcane-gold flex items-center justify-center text-sm font-bold text-white overflow-hidden">
           {profile?.avatar_url ? (
             <img
               src={profile.avatar_url}
@@ -91,7 +91,7 @@ export default function UserMenu() {
               {/* User Info Header */}
               <div className="p-4 border-b border-arcane-border">
                 <div className="flex items-center gap-3 mb-3">
-                  <div className="w-10 h-10 rounded-full bg-gradient-to-br from-arcane-purple to-arcane-gold flex items-center justify-center text-sm font-bold text-white overflow-hidden flex-shrink-0">
+                  <div className="w-10 h-10 rounded-full bg-arcane-gold flex items-center justify-center text-sm font-bold text-white overflow-hidden flex-shrink-0">
                     {profile?.avatar_url ? (
                       <img
                         src={profile.avatar_url}
@@ -169,15 +169,13 @@ export default function UserMenu() {
                   <HiOutlineCreditCard className="w-5 h-5" /> Wallet
                 </Link>
 
-                {profile?.role !== "seller" && (
-                  <Link
-                    to="/become-seller"
-                    onClick={() => setIsOpen(false)}
-                    className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-arcane-gold hover:bg-arcane-gold/10 transition-all font-medium"
-                  >
-                    <HiOutlineBadgeCheck className="w-5 h-5" /> Become a Seller
-                  </Link>
-                )}
+                <Link
+                  to="/become-seller"
+                  onClick={() => setIsOpen(false)}
+                  className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-arcane-gold hover:bg-arcane-gold/10 transition-all font-medium"
+                >
+                  <HiOutlineBadgeCheck className="w-5 h-5" /> Become a Seller
+                </Link>
               </div>
 
               {/* Menu Items - Communication */}

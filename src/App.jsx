@@ -5,6 +5,13 @@ import useAuthStore from "./stores/useAuthStore";
 import Layout from "./components/layout/Layout";
 import ProtectedRoute from "./components/auth/ProtectedRoute";
 import Spinner from "./components/ui/Spinner";
+import BeforeSelling from "./pages/verify/BeforeSelling";
+import SellerDetails from "./pages/verify/SellerDetails";
+import HelpCenter from "./pages/help/HelpCenter";
+import ArticleDetail from "./pages/help/ArticleDetail";
+import CategoryPage from "./pages/help/CategoryPage";
+import VerifyEmail from "./pages/VerifyEmail";
+import useNavbarStore from "./stores/useNavbarStore";
 
 // Public Pages - Keep lazy loaded (rarely visited)
 import Home from "./pages/Home";
@@ -14,6 +21,8 @@ const ForgotPassword = lazy(() => import("./pages/ForgotPassword"));
 const ResetPassword = lazy(() => import("./pages/ResetPassword"));
 const AuthCallback = lazy(() => import("./pages/AuthCallback"));
 const BecomeSeller = lazy(() => import("./pages/BecomeSeller"));
+const Marketplace = lazy(() => import("./pages/Marketplace"));
+const GameMarketplace = lazy(() => import("./pages/games/GameMarketplace"));
 
 // Dashboard - DIRECT imports (no lazy loading for instant navigation)
 import DashboardLayout from "./components/dashboard/DashboardLayout";
@@ -27,6 +36,8 @@ import Notifications from "./pages/dashboard/Notifications";
 import ProfileSettings from "./pages/dashboard/ProfileSettings";
 import Wallet from "./pages/dashboard/Wallet";
 import Loyalty from "./pages/dashboard/Loyalty";
+import Feedback from "./pages/dashboard/Feedback";
+import Support from "./pages/dashboard/Support";
 
 const PageLoader = () => (
   <div className="min-h-screen flex items-center justify-center bg-arcane-dark">
@@ -36,10 +47,10 @@ const PageLoader = () => (
 
 function App() {
   const initialize = useAuthStore((state) => state.initialize);
-  const user = useAuthStore((state) => state.user);
-
+  const initNavbar = useNavbarStore((state) => state.initialize);
   useEffect(() => {
     initialize();
+    initNavbar();
   }, []);
 
   return (
@@ -59,13 +70,26 @@ function App() {
           {/* Public Routes */}
           <Route element={<Layout />}>
             <Route path="/" element={<Home />} />
-            <Route path="/login" element={<Login />} />
-            <Route path="/register" element={<Register />} />
-            <Route path="/forgot-password" element={<ForgotPassword />} />
-            <Route path="/reset-password" element={<ResetPassword />} />
             <Route path="/auth/callback" element={<AuthCallback />} />
             <Route path="/become-seller" element={<BecomeSeller />} />
+            <Route path="/verify/before-selling" element={<BeforeSelling />} />
+            <Route path="/verify/seller-details" element={<SellerDetails />} />
+            <Route path="/marketplace" element={<Marketplace />} />
+            <Route
+              path="/marketplace/game/:gameSlug"
+              element={<GameMarketplace />}
+            />
           </Route>
+
+          {/* No Layout */}
+          <Route path="/help" element={<HelpCenter />} />
+          <Route path="/help/category/:category" element={<CategoryPage />} />
+          <Route path="/help/article/:slug" element={<ArticleDetail />} />
+          <Route path="/login" element={<Login />} />
+          <Route path="/register" element={<Register />} />
+          <Route path="/forgot-password" element={<ForgotPassword />} />
+          <Route path="/verify-email" element={<VerifyEmail />} />
+          <Route path="/reset-password" element={<ResetPassword />} />
 
           {/* Dashboard Routes - NO lazy loading */}
           <Route
@@ -87,6 +111,8 @@ function App() {
             <Route path="settings" element={<ProfileSettings />} />
             <Route path="wallet" element={<Wallet />} />
             <Route path="loyalty" element={<Loyalty />} />
+            <Route path="feedback" element={<Feedback />} />
+            <Route path="support" element={<Support />} />
           </Route>
         </Routes>
       </Suspense>
