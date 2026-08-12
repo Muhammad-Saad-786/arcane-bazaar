@@ -1,3 +1,4 @@
+// Backup
 import { useEffect, useState } from "react";
 import { useParams, useSearchParams, Link } from "react-router-dom";
 import { motion } from "framer-motion";
@@ -51,6 +52,11 @@ export default function GameMarketplace() {
     fetchListings();
   }, [gameSlug, activeCategory, sortBy, currentPage, search]);
 
+  useEffect(() => {
+    setActiveCategory(categoryParam);
+    setCurrentPage(1);
+  }, [categoryParam, gameSlug]);
+
   const fetchGame = async () => {
     const { data } = await supabase
       .from("games")
@@ -61,10 +67,21 @@ export default function GameMarketplace() {
   };
 
   const fetchCategories = async () => {
+    // First get the game ID
+    const { data: gameData } = await supabase
+      .from("games")
+      .select("id")
+      .eq("slug", gameSlug)
+      .single();
+
+    if (!gameData) return;
+
+    // Then fetch categories by game_id
     const { data } = await supabase
       .from("listing_categories")
       .select("*")
-      .eq("game.slug", gameSlug);
+      .eq("game_id", gameData.id);
+
     setCategories(data || []);
   };
 
@@ -74,18 +91,49 @@ export default function GameMarketplace() {
     const from = (currentPage - 1) * pageSize;
     const to = from + pageSize - 1;
 
+    const { data: gameData, error: gameError } = await supabase
+      .from("games")
+      .select("id")
+      .eq("slug", gameSlug)
+      .single();
+
+    if (gameError || !gameData) {
+      setListings([]);
+      setTotalCount(0);
+      setLoading(false);
+      return;
+    }
+
+    let categoryId = null;
+    if (activeCategory) {
+      const { data: categoryData, error: categoryError } = await supabase
+        .from("listing_categories")
+        .select("id")
+        .eq("game_id", gameData.id)
+        .eq("slug", activeCategory)
+        .maybeSingle();
+
+      if (categoryError || !categoryData) {
+        setListings([]);
+        setTotalCount(0);
+        setLoading(false);
+        return;
+      }
+      categoryId = categoryData.id;
+    }
+
     let query = supabase
       .from("listings")
       .select(
-        `*, game:games(name, slug, icon), category:listing_categories(name, type), seller:profiles(username, verified_seller, rating, total_sales), images:listing_images(url, is_cover)`,
+        `*, game:games(name, slug, icon), category:listing_categories(name, slug, type), seller:profiles(username, verified_seller, rating, total_sales), images:listing_images(url, is_cover)`,
         { count: "exact" },
       )
-      .eq("game.slug", gameSlug)
+      .eq("game_id", gameData.id)
       .eq("status", "active")
       .eq("approval_status", "approved");
 
-    if (activeCategory) {
-      query = query.eq("category.slug", activeCategory);
+    if (categoryId) {
+      query = query.eq("category_id", categoryId);
     }
     if (search) {
       query = query.or(`title.ilike.%${search}%`);
@@ -109,7 +157,14 @@ export default function GameMarketplace() {
         query = query.order("created_at", { ascending: false });
     }
 
-    const { data, count } = await query.range(from, to);
+    const { data, count, error } = await query.range(from, to);
+    if (error) {
+      console.error("Failed to fetch game listings:", error);
+      setListings([]);
+      setTotalCount(0);
+      setLoading(false);
+      return;
+    }
     setListings(data || []);
     setTotalCount(count || 0);
     setLoading(false);
@@ -190,6 +245,7 @@ export default function GameMarketplace() {
               onClick={() => {
                 setActiveCategory(cat.slug);
                 setCurrentPage(1);
+                setSearchParams({ category: cat.slug });
               }}
               className={`px-4 py-2 rounded-xl text-sm font-medium whitespace-nowrap transition-all ${
                 activeCategory === cat.slug

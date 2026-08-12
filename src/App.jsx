@@ -12,6 +12,14 @@ import ArticleDetail from "./pages/help/ArticleDetail";
 import CategoryPage from "./pages/help/CategoryPage";
 import VerifyEmail from "./pages/VerifyEmail";
 import useNavbarStore from "./stores/useNavbarStore";
+import SellerDashboardLayout from "./components/dashboard/SellerDashboardLayout";
+import SellerOverview from "./pages/seller/SellerOverview";
+import ListingsManagement from "./pages/seller/ListingsManagement";
+import SellerOrders from "./pages/seller/SellerOrders";
+import Revenue from "./pages/seller/Revenue";
+import Analytics from "./pages/seller/Analytics";
+import SellerProfilePage from "./pages/seller/SellerProfile";
+import SellerSettings from "./pages/seller/SellerSettings";
 
 // Public Pages - Keep lazy loaded (rarely visited)
 import Home from "./pages/Home";
@@ -23,7 +31,8 @@ const AuthCallback = lazy(() => import("./pages/AuthCallback"));
 const BecomeSeller = lazy(() => import("./pages/BecomeSeller"));
 const Marketplace = lazy(() => import("./pages/Marketplace"));
 const GameMarketplace = lazy(() => import("./pages/games/GameMarketplace"));
-
+const SellAccount = lazy(() => import("./pages/sell/SellAccount"));
+const ListingDetail = lazy(() => import("./pages/ListingDetail"));
 // Dashboard - DIRECT imports (no lazy loading for instant navigation)
 import DashboardLayout from "./components/dashboard/DashboardLayout";
 import DashboardOverview from "./pages/dashboard/DashboardOverview";
@@ -72,14 +81,44 @@ function App() {
             <Route path="/" element={<Home />} />
             <Route path="/auth/callback" element={<AuthCallback />} />
             <Route path="/become-seller" element={<BecomeSeller />} />
-            <Route path="/verify/before-selling" element={<BeforeSelling />} />
-            <Route path="/verify/seller-details" element={<SellerDetails />} />
+            <Route path="/listing/:id" element={<ListingDetail />} />
+
+            <Route
+              path="/verify/before-selling"
+              element={
+                <ProtectedRoute>
+                  <BeforeSelling />
+                </ProtectedRoute>
+              }
+            />
+
+            <Route
+              path="/verify/seller-details"
+              element={
+                <ProtectedRoute>
+                  <SellerDetails />
+                </ProtectedRoute>
+              }
+            />
             <Route path="/marketplace" element={<Marketplace />} />
             <Route
               path="/marketplace/game/:gameSlug"
               element={<GameMarketplace />}
             />
           </Route>
+
+          {/* Sell Account Route */}
+          <Route
+            path="/sell"
+            element={
+              <ProtectedRoute
+                allowedRoles={["seller", "admin"]}
+                requireSellerVerification
+              >
+                <SellAccount />
+              </ProtectedRoute>
+            }
+          />
 
           {/* No Layout */}
           <Route path="/help" element={<HelpCenter />} />
@@ -90,6 +129,28 @@ function App() {
           <Route path="/forgot-password" element={<ForgotPassword />} />
           <Route path="/verify-email" element={<VerifyEmail />} />
           <Route path="/reset-password" element={<ResetPassword />} />
+
+          {/* Seller Dashboard Routes */}
+          <Route
+            path="/seller-dashboard"
+            element={
+              <ProtectedRoute
+                allowedRoles={["seller", "admin"]}
+                requireSellerVerification
+              >
+                <SellerDashboardLayout />
+              </ProtectedRoute>
+            }
+          >
+            <Route index element={<SellerOverview />} />
+            <Route path="listings" element={<ListingsManagement />} />
+            <Route path="orders" element={<SellerOrders />} />
+            <Route path="revenue" element={<Revenue />} />
+            <Route path="analytics" element={<Analytics />} />
+            <Route path="messages" element={<Messages />} />
+            <Route path="profile" element={<SellerProfilePage />} />
+            <Route path="settings" element={<SellerSettings />} />
+          </Route>
 
           {/* Dashboard Routes - NO lazy loading */}
           <Route

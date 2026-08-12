@@ -1,3 +1,4 @@
+// Baackup
 import { useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { motion } from "framer-motion";
@@ -16,6 +17,7 @@ import ListingCard from "../components/listings/ListingCard";
 import SEO from "../components/ui/SEO";
 import Spinner from "../components/ui/Spinner";
 import Button from "../components/ui/Button";
+import useSEOContentStore from "../stores/useSEOContentStore";
 
 const sortOptions = [
   { value: "newest", label: "Newest" },
@@ -75,6 +77,7 @@ const gameRanks = {
 export default function Marketplace() {
   const [searchParams, setSearchParams] = useSearchParams();
   const [showFilters, setShowFilters] = useState(false);
+  const { content: seoContent, fetchContent } = useSEOContentStore();
 
   const {
     listings,
@@ -145,7 +148,11 @@ export default function Marketplace() {
         <div className="mb-6">
           <GameSelector
             selected={filters.game}
-            onSelect={(slug) => setFilter("game", slug)}
+            onSelect={(slug) => {
+              setFilter("game", slug);
+              setFilter("category", "");
+              setFilter("type", "");
+            }}
             showAll
           />
         </div>

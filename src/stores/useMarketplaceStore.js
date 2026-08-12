@@ -60,7 +60,7 @@ const useMarketplaceStore = create((set, get) => ({
   fetchCategories: async (gameSlug) => {
     let query = supabase
       .from("listing_categories")
-      .select("*, game:games(name, slug)");
+      .select("*, game:games!inner(name, slug)");
     if (gameSlug) query = query.eq("game.slug", gameSlug);
     const { data } = await query.order("type");
     set({ categories: data || [] });
@@ -74,7 +74,7 @@ const useMarketplaceStore = create((set, get) => ({
       let query = supabase
         .from("listings")
         .select(
-          `*, game:games(name, slug, icon), category:listing_categories(name, type), seller:profiles(username, verified_seller, rating), images:listing_images(url, is_cover)`,
+          `*, game:games!inner(name, slug, icon), category:listing_categories!inner(name, slug, type), seller:profiles(username, verified_seller, rating), images:listing_images(url, is_cover)`,
           { count: "exact" },
         )
         .eq("status", "active")
