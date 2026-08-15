@@ -181,7 +181,7 @@ export default function BecomeSeller() {
                 <HiOutlineArrowRight className="w-5 h-5" />
               </Button>
               <p className="text-text-muted text-sm">
-                Secure KYC via Ondato • Takes ~5 minutes • No upfront costs
+                Secure KYC via Persona • Takes ~5 minutes • No upfront costs
               </p>
             </motion.div>
 

@@ -472,10 +472,18 @@ const useCreateListingStore = create((set, get) => ({
 
   submitListing: async () => {
     const user = useAuthStore.getState().user;
-    const { editorMode } = get();
+    const { editorMode, formData } = get();
 
     if (!user) {
       toast.error("Please sign in again");
+      return { success: false };
+    }
+    if (!formData.game_id) {
+      toast.error("Please select a game");
+      return { success: false };
+    }
+    if (!formData.category_id) {
+      toast.error("Please select a category");
       return { success: false };
     }
 

@@ -1,6 +1,9 @@
 import { create } from "zustand";
 import { supabase } from "../lib/supabase";
 
+let fetchTimeout = null;
+let requestId = 0;
+
 const useMarketplaceStore = create((set, get) => ({
   listings: [],
   games: [],
@@ -24,13 +27,14 @@ const useMarketplaceStore = create((set, get) => ({
     instantDelivery: false,
   },
 
-  setFilter: (key, value) =>
+  setFilter: (key, value) => {
     set((state) => ({
       filters: { ...state.filters, [key]: value },
       currentPage: 1,
-    })),
+    }));
+  },
 
-  resetFilters: () =>
+  resetFilters: () => {
     set({
       filters: {
         search: "",
@@ -46,7 +50,8 @@ const useMarketplaceStore = create((set, get) => ({
         instantDelivery: false,
       },
       currentPage: 1,
-    }),
+    });
+  },
 
   fetchGames: async () => {
     const { data } = await supabase
@@ -67,6 +72,12 @@ const useMarketplaceStore = create((set, get) => ({
   },
 
   fetchListings: async () => {
+    // Clear any pending fetch
+    if (fetchTimeout) clearTimeout(fetchTimeout);
+
+    // Increment request ID to cancel stale requests
+    const currentRequestId = ++requestId;
+
     set({ loading: true });
     const { filters, currentPage, pageSize } = get();
 
@@ -80,12 +91,10 @@ const useMarketplaceStore = create((set, get) => ({
         .eq("status", "active")
         .eq("approval_status", "approved");
 
-      // Filters
-      if (filters.search) {
+      if (filters.search)
         query = query.or(
           `title.ilike.%${filters.search}%,description.ilike.%${filters.search}%`,
         );
-      }
       if (filters.game) query = query.eq("game.slug", filters.game);
       if (filters.category) query = query.eq("category.slug", filters.category);
       if (filters.type) query = query.eq("category.type", filters.type);
@@ -98,7 +107,6 @@ const useMarketplaceStore = create((set, get) => ({
       if (filters.featured) query = query.eq("is_featured", true);
       if (filters.instantDelivery) query = query.eq("instant_delivery", true);
 
-      // Sort
       switch (filters.sortBy) {
         case "price-low":
           query = query.order("price", { ascending: true });
@@ -109,25 +117,26 @@ const useMarketplaceStore = create((set, get) => ({
         case "popular":
           query = query.order("views", { ascending: false });
           break;
-        case "oldest":
-          query = query.order("created_at", { ascending: true });
-          break;
         default:
           query = query.order("created_at", { ascending: false });
       }
 
-      // Pagination
       const from = (currentPage - 1) * pageSize;
       const to = from + pageSize - 1;
       query = query.range(from, to);
 
       const { data, count, error } = await query;
+
+      // Only apply if this is the latest request
+      if (currentRequestId !== requestId) return;
+
       if (error) throw error;
 
       set({ listings: data || [], totalCount: count || 0, loading: false });
     } catch (error) {
+      if (currentRequestId !== requestId) return;
       console.error("Fetch listings error:", error);
-      set({ loading: false });
+      set({ loading: false, listings: [], totalCount: 0 });
     }
   },
 

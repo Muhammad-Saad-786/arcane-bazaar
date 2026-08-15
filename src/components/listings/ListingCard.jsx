@@ -14,7 +14,6 @@ export default function ListingCard({ listing }) {
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      whileHover={{ y: -4 }}
       transition={{ duration: 0.2 }}
     >
       <Link to={`/listing/${listing.id}`} className="block">
