@@ -80,7 +80,7 @@ const useSupportAgentStore = create((set, get) => ({
   },
 
   pollForReply: async (ticketId) => {
-    const maxPolls = 20;
+    const maxPolls = 30;
     let polls = 0;
 
     const interval = setInterval(async () => {
@@ -120,7 +120,7 @@ const useSupportAgentStore = create((set, get) => ({
           "Request timed out. A human agent will assist you shortly.",
         );
       }
-    }, 3000);
+    }, 1000);
 
     set({ pollingInterval: interval });
   },
