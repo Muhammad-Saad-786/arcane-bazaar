@@ -20,7 +20,7 @@ import Revenue from "./pages/seller/Revenue";
 import Analytics from "./pages/seller/Analytics";
 import SellerProfilePage from "./pages/seller/SellerProfile";
 import SellerSettings from "./pages/seller/SellerSettings";
-
+import SupportAgent from "./components/support/SupportAgent";
 // Public Pages - Keep lazy loaded (rarely visited)
 import Home from "./pages/Home";
 const Login = lazy(() => import("./pages/Login"));
@@ -74,6 +74,8 @@ function App() {
           },
         }}
       />
+      {/* Support Agent */}
+      <SupportAgent />
       <Suspense fallback={<PageLoader />}>
         <Routes>
           {/* Public Routes */}
