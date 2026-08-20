@@ -12,6 +12,7 @@ import {
   HiOutlineMail,
   HiOutlineBell,
   HiOutlineBadgeCheck,
+  HiOutlineViewGrid,
 } from "react-icons/hi";
 import useAuthStore from "../../stores/useAuthStore";
 import useWalletStore from "../../stores/useWalletStore";
@@ -46,6 +47,8 @@ export default function UserMenu() {
     navigate("/");
   };
 
+  const isSeller = profile?.is_seller_verified || profile?.role === "seller";
+
   return (
     <div ref={dropdownRef} className="relative">
       {/* Avatar Button */}
@@ -67,7 +70,7 @@ export default function UserMenu() {
         </div>
       </button>
 
-      {/* Dropdown */}
+      {/* Dropdown Menu */}
       <AnimatePresence>
         {isOpen && (
           <>
@@ -80,7 +83,7 @@ export default function UserMenu() {
               className="fixed inset-0 z-40"
             />
 
-            {/* Menu - Fixed position with max-height and scroll */}
+            {/* Menu */}
             <motion.div
               initial={{ opacity: 0, y: -10, scale: 0.95 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
@@ -105,10 +108,10 @@ export default function UserMenu() {
                   </div>
                   <div className="min-w-0">
                     <p className="text-sm font-semibold text-white truncate">
-                      {profile?.username}
+                      {profile?.username || "Arcane User"}
                     </p>
                     <p className="text-xs text-text-muted truncate">
-                      {profile?.email}
+                      {profile?.email || user?.email}
                     </p>
                   </div>
                 </div>
@@ -117,7 +120,7 @@ export default function UserMenu() {
                 <div className="flex items-center justify-between p-3 rounded-xl bg-arcane-surface">
                   <span className="text-xs text-text-secondary">Balance</span>
                   <span className="text-base font-bold text-arcane-gold">
-                    {formatBalance()}
+                    {formatBalance ? formatBalance() : "$0.00"}
                   </span>
                 </div>
 
@@ -132,7 +135,7 @@ export default function UserMenu() {
                 <Link
                   to="/dashboard/orders"
                   onClick={() => setIsOpen(false)}
-                  className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm  text-white hover:bg-arcane-surface transition-all"
+                  className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-white hover:bg-arcane-surface transition-all"
                 >
                   <HiOutlineShoppingBag className="w-5 h-5" /> Orders
                 </Link>
@@ -169,13 +172,24 @@ export default function UserMenu() {
                   <HiOutlineCreditCard className="w-5 h-5" /> Wallet
                 </Link>
 
-                <Link
-                  to="/become-seller"
-                  onClick={() => setIsOpen(false)}
-                  className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-arcane-gold hover:bg-arcane-gold/10 transition-all font-medium"
-                >
-                  <HiOutlineBadgeCheck className="w-5 h-5" /> Become a Seller
-                </Link>
+                {/* Dynamic Verified Seller Link */}
+                {isSeller ? (
+                  <Link
+                    to="/seller-dashboard"
+                    onClick={() => setIsOpen(false)}
+                    className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-arcane-gold hover:bg-arcane-gold/10 transition-all font-semibold"
+                  >
+                    <HiOutlineViewGrid className="w-5 h-5" /> Seller Dashboard
+                  </Link>
+                ) : (
+                  <Link
+                    to="/become-seller"
+                    onClick={() => setIsOpen(false)}
+                    className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-arcane-gold hover:bg-arcane-gold/10 transition-all font-medium"
+                  >
+                    <HiOutlineBadgeCheck className="w-5 h-5" /> Become a Seller
+                  </Link>
+                )}
               </div>
 
               {/* Menu Items - Communication */}
@@ -209,7 +223,7 @@ export default function UserMenu() {
               <div className="border-t border-arcane-border p-2">
                 <button
                   onClick={handleSignOut}
-                  className="flex items-center gap-3 w-full px-3 py-2.5 rounded-xl text-sm text-danger hover:bg-danger/10 transition-all"
+                  className="flex items-center gap-3 w-full px-3 py-2.5 rounded-xl text-sm text-red-400 hover:bg-red-500/10 transition-all"
                 >
                   <HiOutlineLogout className="w-5 h-5" /> Log out
                 </button>

@@ -165,7 +165,9 @@ export default function Navbar() {
                   >
                     <HiOutlineBell className="w-5 h-5" />
                   </Link>
-                  <UserMenu />
+                  <div className="hover:cursor-pointer">
+                    <UserMenu />
+                  </div>
                 </>
               ) : (
                 <div className="flex items-center gap-2">
@@ -194,7 +196,7 @@ export default function Navbar() {
             </div>
           </div>
 
-          {/* Category Tabs with Eldorado-Style Mega Dropdowns */}
+          {/* Category Tabs with Style Mega Dropdowns */}
           <div
             className="hidden lg:flex items-center gap-1 pb-2"
             ref={dropdownRef}
