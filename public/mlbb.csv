@@ -1,0 +1,13 @@
+title,description,price,delivery_type,delivery_time,rank,level,server,hero_count,skin_count,amount_options,delivery_method,region,platform,service_type,target_rank,item_name,quantity
+"MLBB Mythic Glory 85 Stars | 118 Heroes | 240 Skins | Collector & Legend","Full access Moonton account with email change available. Includes Granger Legend and Gusion Collector.",289.99,instant,15,"Mythical Glory",120,"Global",118,240,"","","Global","Mobile","","","",1
+"MLBB Mythical Immortal 120 Stars | All Heroes Unlocked | 350 Skins","High-end account with 5 Legend skins, KOF set, and Prime skins. Clean bind history.",450.00,instant,15,"Mythical Immortal",150,"Global",124,350,"","","Global","Mobile","","","",1
+"MLBB Epic to Mythic Placement Rank Boost","Fast solo/duo rank boosting with 85%+ win rate guarantee. Stream available.",35.00,manual,180,"Epic V","","Global",0,0,"","","Global","Mobile","rank_boost","Mythic","","1
+"MLBB 1000+ Diamonds Direct ID Instant Top-Up","Instant recharge via user ID and zone ID. No login credentials required.",18.50,auto,5,"","","Global",0,0,"[{\""amount\"":\""500 Diamonds\"",\""price\"":9.50},{\""amount\"":\""1000 Diamonds\"",\""price\"":18.50}]","redeem_code","Global","Mobile","","","",1
+"MLBB 5000 Diamonds Fast Top-Up Bundle","Fast diamond delivery via authorized direct top-up method. 100% safe from bans.",89.00,auto,5,"","","Global",0,0,"[{\""amount\"":\""5000 Diamonds\"",\""price\"":89.00}]","redeem_code","Global","Mobile","","","",1
+"MLBB Legend Rank Smurf Account | 65 Heroes | 80 Skins | High WR","Clean smurf account with 78% overall winrate. Great for climbing.",65.00,instant,15,"Legend",55,"SEA",65,80,"","","SEA","Mobile","","","",1
+"MLBB Grandmaster to Legend Fast Boost","Guaranteed fast delivery within 24 hours. Professional boosters only.",25.00,manual,120,"Grandmaster I","","Global",0,0,"","","Global","Mobile","rank_boost","Legend V","","1
+"MLBB Chou IORI Yagami Skin Gift","In-game skin gifting via friendship system (7-day friend requirement applies).",45.00,manual,60,"","","Global",0,0,"","direct_trade","Global","Mobile","","","Chou KOF Skin",1
+"MLBB Mythic Rank Net 10 Wins Boost","Guaranteed 10 net competitive wins in Mythic lobby.",30.00,manual,240,"Mythic","","Global",0,0,"","","Global","Mobile","win_boost","","","1
+"MLBB Starter Account | 30 Heroes | 25k Battle Points","Great starter account with plenty of resources to pick your main hero.",15.00,instant,15,"Master",25,"Global",30,15,"","","Global","Mobile","","","",1
+
+

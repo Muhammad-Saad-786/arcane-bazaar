@@ -108,8 +108,6 @@ export default function Marketplace() {
     filters,
     games,
     categories,
-    availableServers,
-    availablePlatforms,
     setFilter,
     setMultipleFilters,
     resetFilters,
@@ -120,40 +118,45 @@ export default function Marketplace() {
     setPage,
   } = useMarketplaceStore();
 
-  const isInitialMount = useRef(true);
-
-  // Sync URL Params on initial load
+  // Load baseline metadata on mount
   useEffect(() => {
-    const init = async () => {
-      await fetchGames();
-      await fetchCategories();
-
-      const game = searchParams.get("game") || "";
-      const category = searchParams.get("category") || "";
-      const type = searchParams.get("type") || "";
-      const search = searchParams.get("search") || "";
-
-      setMultipleFilters({ game, category, type, search });
-      await fetchListings();
-    };
-    init();
+    fetchGames();
+    fetchCategories();
   }, []);
 
-  // Fetch listings on filter change
+  // Sync from URL search params into Zustand store whenever the URL changes
   useEffect(() => {
-    if (isInitialMount.current) {
-      isInitialMount.current = false;
-      return;
-    }
+    const game = searchParams.get("game") || "";
+    const category = searchParams.get("category") || "";
+    const type = searchParams.get("type") || "";
+    const search = searchParams.get("search") || "";
+
+    setMultipleFilters({ game, category, type, search });
+  }, [searchParams]);
+
+  // Fetch listings whenever store filters or current page change
+  useEffect(() => {
     fetchListings();
   }, [filters, currentPage]);
 
-  // When selected game changes, update category pool
+  // When game filter changes, re-fetch relevant subcategories
   useEffect(() => {
     if (filters.game) {
       fetchCategories(filters.game);
     }
   }, [filters.game]);
+
+  const updateURLParams = (updatedEntries) => {
+    const nextParams = new URLSearchParams(searchParams);
+    Object.entries(updatedEntries).forEach(([key, val]) => {
+      if (val) {
+        nextParams.set(key, val);
+      } else {
+        nextParams.delete(key);
+      }
+    });
+    setSearchParams(nextParams);
+  };
 
   const totalPages = Math.ceil(totalCount / pageSize);
   const currentGame = games.find((g) => g.slug === filters.game);
@@ -166,13 +169,12 @@ export default function Marketplace() {
     setMultipleFilters({
       game: selectedSlug,
       category: "",
-      type: "",
       server: "",
       rank: "",
       region: "",
       platform: "",
     });
-    setSearchParams(selectedSlug ? { game: selectedSlug } : {});
+    updateURLParams({ game: selectedSlug, category: "" });
   };
 
   const handleTypeSelect = (typeId) => {
@@ -182,6 +184,12 @@ export default function Marketplace() {
       serviceType: "",
       deliveryMethod: "",
     });
+    updateURLParams({ type: typeId, category: "" });
+  };
+
+  const handleSubCategorySelect = (categorySlug) => {
+    setFilter("category", categorySlug);
+    updateURLParams({ category: categorySlug });
   };
 
   const activeFiltersCount = [
@@ -202,7 +210,7 @@ export default function Marketplace() {
       <SEO
         title={
           currentGame
-            ? `${currentGame.name} Marketplace | Arcane Bazaar`
+            ? `${currentGame.name} For Sale  | Buy ${currentGame.name} `
             : "Gaming Marketplace"
         }
         description="Buy verified gaming accounts, currency top-ups, boosting services, and items safely on Arcane Bazaar."
@@ -231,7 +239,7 @@ export default function Marketplace() {
               active listings
               <span className="inline-block w-1 h-1 rounded-full bg-[#2A2932]" />
               <span className="text-emerald-400 inline-flex items-center gap-1 font-medium">
-                <HiOutlineShieldCheck className="w-4 h-4" /> Escrow &amp; Buyer
+                <HiOutlineShieldCheck className="w-4 h-4" /> Escrow & Buyer
                 Protected
               </span>
             </p>
@@ -244,13 +252,19 @@ export default function Marketplace() {
               <input
                 type="text"
                 value={filters.search}
-                onChange={(e) => setFilter("search", e.target.value)}
+                onChange={(e) => {
+                  setFilter("search", e.target.value);
+                  updateURLParams({ search: e.target.value });
+                }}
                 placeholder="Search skins, ranks, items..."
                 className="w-full bg-[#18171E] border border-[#2A2932] rounded-xl py-2.5 pl-10 pr-4 text-sm text-white placeholder:text-gray-500 outline-none focus:border-arcane-gold/50 transition-all"
               />
               {filters.search && (
                 <button
-                  onClick={() => setFilter("search", "")}
+                  onClick={() => {
+                    setFilter("search", "");
+                    updateURLParams({ search: "" });
+                  }}
                   className="absolute right-3 top-1/2 -translate-y-1/2 text-text-muted hover:text-white"
                 >
                   <HiOutlineX className="w-3.5 h-3.5" />
@@ -285,7 +299,7 @@ export default function Marketplace() {
           />
         </div>
 
-        {/* ============ ELDORADO-STYLE CATEGORY TABS ============ */}
+        {/* STYLE CATEGORY TABS */}
         <div className="flex items-center gap-2 overflow-x-auto pb-3 mb-4 scrollbar-none border-b border-[#2A2932]/40">
           {categoryTypeTabs.map((tab) => {
             const Icon = tab.icon;
@@ -379,9 +393,15 @@ export default function Marketplace() {
                 />
               </div>
 
-              {(activeFiltersCount > 0 || filters.search || filters.type) && (
+              {(activeFiltersCount > 0 ||
+                filters.search ||
+                filters.type ||
+                filters.category) && (
                 <button
-                  onClick={resetFilters}
+                  onClick={() => {
+                    resetFilters();
+                    setSearchParams(filters.game ? { game: filters.game } : {});
+                  }}
                   className="text-xs text-text-muted hover:text-red-400 underline transition-colors px-2"
                 >
                   Clear All
@@ -390,7 +410,7 @@ export default function Marketplace() {
             </div>
           </div>
 
-          {/* ============ ADVANCED CATEGORY-SPECIFIC FILTER ACCORDION ============ */}
+          {/* ADVANCED CATEGORY-SPECIFIC FILTER ACCORDION */}
           <AnimatePresence>
             {showAdvancedFilters && (
               <motion.div
@@ -407,7 +427,7 @@ export default function Marketplace() {
                     </label>
                     <select
                       value={filters.category}
-                      onChange={(e) => setFilter("category", e.target.value)}
+                      onChange={(e) => handleSubCategorySelect(e.target.value)}
                       className="w-full bg-[#141319] border border-[#2A2932] rounded-lg py-2 px-2.5 text-white outline-none"
                     >
                       <option value="">All Categories</option>
@@ -461,7 +481,9 @@ export default function Marketplace() {
                 )}
 
                 {/* Topup / Items Specific: Delivery Method */}
-                {(filters.type === "topup" || filters.type === "items") && (
+                {(filters.type === "topup" ||
+                  filters.type === "items" ||
+                  filters.type === "currency") && (
                   <div>
                     <label className="block text-text-muted mb-1 text-[11px]">
                       Delivery Method
@@ -518,7 +540,7 @@ export default function Marketplace() {
           </AnimatePresence>
         </div>
 
-        {/* ============ LISTINGS GRID ============ */}
+        {/* LISTINGS GRID */}
         <div>
           {loading ? (
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 sm:gap-4">
@@ -535,7 +557,10 @@ export default function Marketplace() {
                 Try resetting filters or searching for different terms.
               </p>
               <button
-                onClick={resetAll}
+                onClick={() => {
+                  resetAll();
+                  setSearchParams({});
+                }}
                 className="mt-4 px-4 py-2 bg-arcane-gold text-[#141319] font-bold text-xs rounded-xl hover:bg-arcane-gold/90 transition-all"
               >
                 Reset All Filters

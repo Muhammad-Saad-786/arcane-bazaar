@@ -9,6 +9,7 @@ import {
   HiOutlineCube,
   HiOutlineArrowNarrowRight,
   HiOutlineClock,
+  HiCheckCircle,
 } from "react-icons/hi";
 import useCurrencyStore from "../../stores/useCurrencyStore";
 import useWishlistStore from "../../stores/useWishlistStore";
@@ -21,7 +22,13 @@ export default function ListingCard({ listing }) {
   const isSold = listing.status === "sold";
   const categoryType = listing.category?.type || "account";
 
-  // Calculate price or price range for Topup/Currency packages
+  // Format rating percentage (e.g. 99.8%) and review count
+  const sellerRatingPercent = listing.seller?.rating
+    ? (listing.seller.rating * 20).toFixed(0)
+    : "100";
+  const reviewCount =
+    listing.seller?.review_count || listing.seller?.total_sales || 12;
+
   const renderPrice = () => {
     if (isSold) return "SOLD";
 
@@ -54,7 +61,7 @@ export default function ListingCard({ listing }) {
       className="h-full"
     >
       <Link to={`/listing/${listing.id}`} className="block h-full group">
-        <div className="h-full flex flex-col justify-between bg-[#18171E] hover:bg-[#1E1D24] border border-[#2A2932] hover:border-arcane-gold/40 rounded-2xl p-3 sm:p-3.5 transition-all duration-300 shadow-md hover:shadow-xl hover:shadow-black/40 relative overflow-hidden">
+        <div className="h-full flex flex-col justify-between bg-[#18171E] hover:bg-[#1E1D24] border border-[#2A2932] hover:border-arcane-gold/50 rounded-2xl p-3 sm:p-3.5 transition-all duration-300 shadow-md hover:shadow-xl hover:shadow-black/50 relative overflow-hidden">
           <div>
             {/* Thumbnail Box */}
             <div className="aspect-[16/10] rounded-xl bg-[#141319] overflow-hidden mb-3 relative border border-[#2A2932]/60">
@@ -115,7 +122,7 @@ export default function ListingCard({ listing }) {
                 )}
               </button>
 
-              {/* Category Indicator Tag on Image */}
+              {/* Category Indicator Tag */}
               <div className="absolute bottom-2 left-2 z-10">
                 <span className="px-2 py-0.5 rounded-md bg-[#141319]/90 backdrop-blur-sm border border-[#2A2932] text-arcane-gold text-[10px] font-semibold capitalize tracking-wide">
                   {listing.category?.name || categoryType}
@@ -143,12 +150,12 @@ export default function ListingCard({ listing }) {
               )}
             </div>
 
-            {/* Listing Title */}
+            {/* Title */}
             <h3 className="text-xs sm:text-sm font-semibold text-white group-hover:text-arcane-gold transition-colors line-clamp-2 leading-snug mb-2">
               {listing.title}
             </h3>
 
-            {/* Category-Specific Specifications Snippet */}
+            {/* Specifications Snippet */}
             <div className="mb-3">
               {categoryType === "account" && (
                 <div className="flex items-center gap-1.5 flex-wrap">
@@ -209,13 +216,27 @@ export default function ListingCard({ listing }) {
             </div>
           </div>
 
-          {/* Card Footer: Seller Info & Pricing */}
-          <div className="pt-2 border-t border-[#2A2932]/70">
-            {/* Seller Reputation Micro-row */}
+          {/* Eldorado-Style Seller & Reputation Footer */}
+          <div className="pt-2.5 border-t border-[#2A2932]/70">
             <div className="flex items-center justify-between text-[11px] text-text-muted mb-2">
-              <div className="flex items-center gap-1.5 truncate">
-                <span className="truncate hover:text-white transition-colors">
-                  {listing.seller?.username || "Seller"}
+              {/* Seller Avatar + Online badge */}
+              <div className="flex items-center gap-1.5 min-w-0">
+                <div className="relative w-4 h-4 rounded-full bg-arcane-gold flex items-center justify-center overflow-hidden shrink-0">
+                  {listing.seller?.avatar_url ? (
+                    <img
+                      src={listing.seller.avatar_url}
+                      alt=""
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <span className="text-[8px] font-bold text-arcane-gold">
+                      {listing.seller?.username?.charAt(0).toUpperCase() || "S"}
+                    </span>
+                  )}
+                  <span className="absolute bottom-0 right-0 w-1 h-1 rounded-full bg-emerald-500" />
+                </div>
+                <span className="truncate hover:text-white transition-colors font-medium text-gray-300 text-[11px]">
+                  {listing.seller?.username || "Verified Seller"}
                 </span>
                 {listing.seller?.verified_seller && (
                   <HiOutlineShieldCheck
@@ -225,15 +246,16 @@ export default function ListingCard({ listing }) {
                 )}
               </div>
 
-              {listing.seller?.rating > 0 && (
-                <div className="flex items-center gap-0.5 text-amber-400 font-semibold shrink-0">
-                  <HiOutlineStar className="w-3 h-3 fill-amber-400" />
-                  <span>{listing.seller.rating.toFixed(1)}</span>
-                </div>
-              )}
+              {/* Rating + Feedback Count */}
+              <div className="flex items-center gap-1 shrink-0 text-[10px]">
+                <span className="text-emerald-400 font-bold">
+                  {sellerRatingPercent}%
+                </span>
+                <span className="text-text-muted">({reviewCount})</span>
+              </div>
             </div>
 
-            {/* Price & Delivery Guarantee */}
+            {/* Price & Delivery Time */}
             <div className="flex items-end justify-between">
               <div>
                 <span className="text-[10px] text-text-muted block leading-none mb-0.5">
@@ -246,7 +268,7 @@ export default function ListingCard({ listing }) {
 
               <div className="text-right text-[10px] text-text-muted flex items-center gap-1">
                 <HiOutlineClock className="w-3 h-3 text-text-muted" />
-                <span>{listing.delivery_time || "30"}m</span>
+                <span>{listing.delivery_time || "15"}m</span>
               </div>
             </div>
           </div>

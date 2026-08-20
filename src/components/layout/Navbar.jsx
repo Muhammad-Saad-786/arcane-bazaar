@@ -33,7 +33,7 @@ export default function Navbar() {
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileOpen, setIsMobileOpen] = useState(false);
   const [activeDropdown, setActiveDropdown] = useState(null);
-  const [megaSearch, setMegaSearch] = useState("");
+  const [dropdownSearch, setDropdownSearch] = useState("");
   const { user } = useAuthStore();
   const { count: wishlistCount } = useWishlistStore();
   const location = useLocation();
@@ -57,52 +57,69 @@ export default function Navbar() {
   useEffect(() => {
     setIsMobileOpen(false);
     setActiveDropdown(null);
+    setDropdownSearch("");
   }, [location]);
 
   useEffect(() => {
     const handleClickOutside = (e) => {
       if (dropdownRef.current && !dropdownRef.current.contains(e.target)) {
         setActiveDropdown(null);
+        setDropdownSearch("");
       }
     };
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  const handleCategoryClick = (key) => {
+  const handleCategoryTabClick = (key) => {
     if (activeDropdown === key) {
       setActiveDropdown(null);
+      setDropdownSearch("");
     } else {
       setActiveDropdown(key);
-      setMegaSearch("");
+      setDropdownSearch("");
     }
   };
 
-  const handleCategoryLinkClick = (categorySlug, gameSlug) => {
+  // Navigates directly into the unified marketplace with exact query parameters
+  const handleCategorySelect = (categorySlug, gameSlug, typeKey) => {
     setActiveDropdown(null);
-    navigate(`/marketplace/game/${gameSlug}?category=${categorySlug}`);
+    setDropdownSearch("");
+    const params = new URLSearchParams();
+    if (gameSlug) params.set("game", gameSlug);
+    if (typeKey) params.set("type", typeKey);
+    if (categorySlug) params.set("category", categorySlug);
+    navigate(`/marketplace?${params.toString()}`);
   };
 
-  const handleAllCategoriesClick = (key) => {
+  const handleAllCategoryTypeClick = (key) => {
     setActiveDropdown(null);
-    navigate(`/marketplace?category=${key}`);
+    setDropdownSearch("");
+    navigate(`/marketplace?type=${key}`);
   };
 
   const handleListingClick = (listingId) => {
     setActiveDropdown(null);
+    setDropdownSearch("");
     navigate(`/listing/${listingId}`);
   };
 
-  // Get data instantly from cache
-  const filteredCategories = activeDropdown
+  // Filter categories and games inside dropdown based on user typing
+  const rawCategories = activeDropdown
     ? getCategoriesByType(activeDropdown)
     : [];
+  const filteredCategories = rawCategories.filter((cat) => {
+    if (!dropdownSearch.trim()) return true;
+    const q = dropdownSearch.toLowerCase();
+    return (
+      cat.name?.toLowerCase().includes(q) ||
+      cat.game?.name?.toLowerCase().includes(q)
+    );
+  });
+
   const filteredTrending = activeDropdown
     ? getTrendingByType(activeDropdown)
     : [];
-  const filteredGames = games.filter((g) =>
-    g.name.toLowerCase().includes(megaSearch.toLowerCase()),
-  );
 
   return (
     <>
@@ -177,7 +194,7 @@ export default function Navbar() {
             </div>
           </div>
 
-          {/* Category Tabs with Dropdowns */}
+          {/* Category Tabs with Eldorado-Style Mega Dropdowns */}
           <div
             className="hidden lg:flex items-center gap-1 pb-2"
             ref={dropdownRef}
@@ -185,7 +202,7 @@ export default function Navbar() {
             {mainCategories.map((cat) => (
               <div key={cat.key} className="relative">
                 <button
-                  onClick={() => handleCategoryClick(cat.key)}
+                  onClick={() => handleCategoryTabClick(cat.key)}
                   className={`flex items-center gap-1 px-4 py-2 rounded-xl text-sm font-medium transition-all text-white ${
                     activeDropdown === cat.key
                       ? "bg-arcane-surface"
@@ -194,7 +211,9 @@ export default function Navbar() {
                 >
                   {cat.label}
                   <HiOutlineChevronDown
-                    className={`w-4 h-4 transition-transform duration-200 ${activeDropdown === cat.key ? "rotate-180" : ""}`}
+                    className={`w-4 h-4 transition-transform duration-200 ${
+                      activeDropdown === cat.key ? "rotate-180" : ""
+                    }`}
                   />
                 </button>
 
@@ -205,23 +224,40 @@ export default function Navbar() {
                       animate={{ opacity: 1, y: 0, scale: 1 }}
                       exit={{ opacity: 0, y: -10, scale: 0.95 }}
                       transition={{ duration: 0.1 }}
-                      className="absolute top-full left-0 mt-1 w-[560px] bg-arcane-elevated border border-arcane-border rounded-2xl shadow-2xl z-40 overflow-hidden"
+                      className="absolute top-full left-0 mt-1 w-[620px] bg-arcane-elevated border border-arcane-border rounded-2xl shadow-2xl z-40 overflow-hidden"
                     >
+                      {/* Search Bar inside Category Tab */}
+                      <div className="p-3 border-b border-arcane-border bg-[#18171E]">
+                        <div className="relative">
+                          <HiOutlineSearch className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-text-muted" />
+                          <input
+                            type="text"
+                            value={dropdownSearch}
+                            onChange={(e) => setDropdownSearch(e.target.value)}
+                            placeholder={`Search ${cat.label} by game or item...`}
+                            className="w-full bg-[#141319] border border-[#2A2932] rounded-xl py-2 pl-9 pr-3 text-xs text-white placeholder:text-gray-500 outline-none focus:border-arcane-gold/50 transition-all"
+                          />
+                        </div>
+                      </div>
+
                       <div className="grid grid-cols-5 gap-0">
-                        {/* Left: Game Categories */}
-                        <div className="col-span-2 p-4 border-r border-arcane-border">
-                          <p className="text-xs text-text-muted uppercase tracking-wider mb-3 px-2">
-                            Popular in {cat.label}
+                        {/* Left: Filtered Categories & Games */}
+                        <div className="col-span-3 p-4 border-r border-arcane-border max-h-80 overflow-y-auto">
+                          <p className="text-xs text-text-muted uppercase tracking-wider mb-2 px-2 font-semibold">
+                            {dropdownSearch
+                              ? "Matching Offers"
+                              : `Popular in ${cat.label}`}
                           </p>
-                          <div className="space-y-0.5">
+                          <div className="space-y-1">
                             {filteredCategories.length > 0 ? (
-                              filteredCategories.slice(0, 6).map((category) => (
+                              filteredCategories.slice(0, 8).map((category) => (
                                 <button
                                   key={category.id}
                                   onClick={() =>
-                                    handleCategoryLinkClick(
+                                    handleCategorySelect(
                                       category.slug,
                                       category.game?.slug,
+                                      cat.key,
                                     )
                                   }
                                   className="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-sm text-white hover:bg-arcane-surface transition-all group text-left"
@@ -239,45 +275,45 @@ export default function Navbar() {
                                       </span>
                                     )}
                                   </div>
-                                  <div>
-                                    <span className="truncate group-hover:text-arcane-gold-light transition-colors block">
+                                  <div className="flex-1 min-w-0">
+                                    <span className="truncate group-hover:text-arcane-gold-light transition-colors block text-xs font-medium">
                                       {category.name}
                                     </span>
-                                    <span className="text-xs text-text-muted">
+                                    <span className="text-[11px] text-text-muted block truncate">
                                       {category.game?.name}
                                     </span>
                                   </div>
                                 </button>
                               ))
                             ) : (
-                              <p className="text-xs text-text-muted px-3 py-2">
-                                Loading...
+                              <p className="text-xs text-text-muted px-3 py-4 text-center">
+                                No {cat.label} matching "{dropdownSearch}"
                               </p>
                             )}
                           </div>
                           <button
-                            onClick={() => handleAllCategoriesClick(cat.key)}
-                            className="flex items-center gap-1 mt-2 px-3 py-1.5 text-xs text-arcane-purple hover:text-arcane-gold-light transition-colors"
+                            onClick={() => handleAllCategoryTypeClick(cat.key)}
+                            className="flex items-center gap-1 mt-3 px-3 py-1.5 text-xs text-arcane-purple hover:text-arcane-gold-light transition-colors font-semibold"
                           >
-                            All {cat.label}{" "}
+                            Browse All {cat.label}{" "}
                             <HiOutlineChevronRight className="w-3 h-3" />
                           </button>
                         </div>
 
                         {/* Right: Trending Listings */}
-                        <div className="col-span-3 p-4">
-                          <p className="text-xs text-text-muted uppercase tracking-wider mb-3 px-2">
-                            Trending {cat.label}
+                        <div className="col-span-2 p-4 bg-[#141319]/50 max-h-80 overflow-y-auto">
+                          <p className="text-xs text-text-muted uppercase tracking-wider mb-3 px-2 font-semibold">
+                            Trending
                           </p>
-                          <div className="space-y-2 px-2">
+                          <div className="space-y-2">
                             {filteredTrending.length > 0 ? (
-                              filteredTrending.slice(0, 4).map((listing) => (
+                              filteredTrending.slice(0, 3).map((listing) => (
                                 <button
                                   key={listing.id}
                                   onClick={() => handleListingClick(listing.id)}
-                                  className="w-full flex items-center gap-3 p-2 rounded-xl hover:bg-arcane-surface transition-all group text-left"
+                                  className="w-full flex items-center gap-2.5 p-2 rounded-xl hover:bg-arcane-surface transition-all group text-left border border-transparent hover:border-arcane-border"
                                 >
-                                  <div className="w-12 h-12 rounded-lg bg-arcane-surface overflow-hidden flex-shrink-0">
+                                  <div className="w-10 h-10 rounded-lg bg-arcane-surface overflow-hidden flex-shrink-0">
                                     {listing.images?.[0]?.url ? (
                                       <img
                                         src={listing.images[0].url}
@@ -285,36 +321,23 @@ export default function Navbar() {
                                         className="w-full h-full object-cover"
                                       />
                                     ) : (
-                                      <div className="w-full h-full flex items-center justify-center">
-                                        {listing.game?.icon ? (
-                                          <img
-                                            src={listing.game.icon}
-                                            alt=""
-                                            className="w-6 h-6 object-contain opacity-30"
-                                          />
-                                        ) : (
-                                          <span className="text-lg opacity-30">
-                                            🎮
-                                          </span>
-                                        )}
+                                      <div className="w-full h-full flex items-center justify-center text-sm">
+                                        🎮
                                       </div>
                                     )}
                                   </div>
                                   <div className="flex-1 min-w-0">
-                                    <p className="text-sm text-white truncate group-hover:text-arcane-gold-light transition-colors">
+                                    <p className="text-xs text-white truncate group-hover:text-arcane-gold-light transition-colors">
                                       {listing.title}
                                     </p>
-                                    <span className="text-xs text-text-muted">
-                                      {listing.game?.name}
+                                    <span className="text-xs font-bold text-arcane-gold block mt-0.5">
+                                      ${listing.price}
                                     </span>
                                   </div>
-                                  <span className="text-sm font-bold text-arcane-gold flex-shrink-0">
-                                    ${listing.price}
-                                  </span>
                                 </button>
                               ))
                             ) : (
-                              <p className="text-xs text-text-muted px-2 py-2">
+                              <p className="text-xs text-text-muted px-2 py-4 text-center">
                                 No trending items
                               </p>
                             )}
@@ -362,9 +385,9 @@ export default function Navbar() {
                     key={cat.label}
                     onClick={() => {
                       setIsMobileOpen(false);
-                      navigate(`/marketplace?category=${cat.key}`);
+                      navigate(`/marketplace?type=${cat.key}`);
                     }}
-                    className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-white hover:bg-arcane-surface text-lg text-left"
+                    className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-white hover:bg-arcane-surface text-base font-medium text-left"
                   >
                     {cat.label}
                   </button>

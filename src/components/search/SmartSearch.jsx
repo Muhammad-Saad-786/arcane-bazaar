@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useLocation } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { HiOutlineSearch, HiOutlineX, HiOutlineFire } from "react-icons/hi";
 import useSearchStore from "../../stores/useSearchStore";
@@ -21,6 +21,7 @@ export default function SmartSearch() {
   const inputRef = useRef(null);
   const containerRef = useRef(null);
   const navigate = useNavigate();
+  const location = useLocation();
   const { formatPrice } = useCurrencyStore();
 
   const {
@@ -31,7 +32,6 @@ export default function SmartSearch() {
     loading,
     showResults,
     setQuery,
-    search,
     clearSearch,
     closeResults,
     fetchPopularItems,
@@ -40,6 +40,13 @@ export default function SmartSearch() {
   useEffect(() => {
     fetchPopularItems();
   }, []);
+
+  // Close search automatically whenever the route / location changes
+  useEffect(() => {
+    closeResults();
+    setFocused(false);
+    inputRef.current?.blur();
+  }, [location.pathname, location.search]);
 
   useEffect(() => {
     const handleClick = (e) => {
@@ -60,6 +67,7 @@ export default function SmartSearch() {
       }
       if (e.key === "Escape") {
         closeResults();
+        setFocused(false);
         inputRef.current?.blur();
       }
     };
@@ -67,22 +75,26 @@ export default function SmartSearch() {
     return () => document.removeEventListener("keydown", handleKeyDown);
   }, []);
 
-  const handleSubmit = (e) => {
+  const handleSearchSubmit = (e) => {
     e.preventDefault();
     if (query.trim()) {
       navigate(`/marketplace?search=${encodeURIComponent(query.trim())}`);
       closeResults();
+      setFocused(false);
+      inputRef.current?.blur();
     }
   };
 
-  const handleItemClick = () => {
+  const handleItemSelect = () => {
     closeResults();
     clearSearch();
+    setFocused(false);
+    inputRef.current?.blur();
   };
 
   return (
     <div ref={containerRef} className="relative w-full max-w-2xl">
-      <form onSubmit={handleSubmit}>
+      <form onSubmit={handleSearchSubmit}>
         <div className="relative">
           <HiOutlineSearch className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-text-muted" />
           <input
@@ -92,7 +104,6 @@ export default function SmartSearch() {
             onChange={(e) => setQuery(e.target.value)}
             onFocus={() => {
               setFocused(true);
-              if (query.length === 0) setQuery("");
             }}
             placeholder="Search games, accounts, items..."
             className="w-full bg-arcane-surface border border-arcane-border rounded-2xl pl-12 pr-12 py-3 text-white placeholder-text-muted outline-none focus:border-arcane-purple/50 focus:ring-2 focus:ring-arcane-purple/20 transition-all text-sm"
@@ -127,7 +138,6 @@ export default function SmartSearch() {
             className="absolute top-full left-0 right-0 mt-2 bg-arcane-elevated border border-arcane-border rounded-2xl shadow-2xl z-50 max-h-[70vh] overflow-y-auto"
           >
             {query.length >= 2 ? (
-              /* Search Results */
               <div className="p-2">
                 {loading ? (
                   <div className="p-4 space-y-3">
@@ -157,7 +167,7 @@ export default function SmartSearch() {
                       <Link
                         key={item.id}
                         to={`/listing/${item.id}`}
-                        onClick={handleItemClick}
+                        onClick={handleItemSelect}
                         className="flex items-center gap-3 p-3 rounded-xl hover:bg-arcane-surface transition-all group"
                       >
                         <div className="w-12 h-12 rounded-xl bg-arcane-surface overflow-hidden flex-shrink-0">
@@ -193,7 +203,7 @@ export default function SmartSearch() {
                     ))}
                     <Link
                       to={`/marketplace?search=${encodeURIComponent(query)}`}
-                      onClick={handleItemClick}
+                      onClick={handleItemSelect}
                       className="flex items-center justify-center gap-2 p-3 mt-2 rounded-xl bg-arcane-purple/10 text-arcane-purple hover:bg-arcane-purple/20 transition-all text-sm font-medium"
                     >
                       View all results for "{query}"
@@ -202,9 +212,7 @@ export default function SmartSearch() {
                 )}
               </div>
             ) : (
-              /* Popular Items Grid */
               <div className="p-3">
-                {/* Popular Games */}
                 {popularGames.length > 0 && (
                   <div className="mb-4">
                     <p className="px-2 py-1.5 text-xs text-text-muted uppercase tracking-wider flex items-center gap-2">
@@ -216,7 +224,7 @@ export default function SmartSearch() {
                         <Link
                           key={game.id}
                           to={`/marketplace?game=${game.slug}`}
-                          onClick={handleItemClick}
+                          onClick={handleItemSelect}
                           className="flex flex-col items-center gap-2 p-3 rounded-xl hover:bg-arcane-surface transition-all group"
                         >
                           <div className="w-10 h-10 rounded-xl bg-arcane-surface flex items-center justify-center overflow-hidden">
@@ -241,7 +249,6 @@ export default function SmartSearch() {
                   </div>
                 )}
 
-                {/* Popular Categories */}
                 {popularCategories.length > 0 && (
                   <div>
                     <p className="px-2 py-1.5 text-xs text-text-muted uppercase tracking-wider">
@@ -251,8 +258,8 @@ export default function SmartSearch() {
                       {popularCategories.map((cat) => (
                         <Link
                           key={cat.id}
-                          to={`/marketplace?game=${cat.game?.slug}&category=${cat.slug}`}
-                          onClick={handleItemClick}
+                          to={`/marketplace?game=${cat.game?.slug || ""}&category=${cat.slug}&type=${cat.type || ""}`}
+                          onClick={handleItemSelect}
                           className="flex flex-col items-center gap-2 p-3 rounded-xl hover:bg-arcane-surface transition-all group"
                         >
                           <div className="w-10 h-10 rounded-xl bg-arcane-surface flex items-center justify-center text-lg">

@@ -106,7 +106,7 @@ const useMarketplaceStore = create((set, get) => ({
           `
             *,
             game:games!inner(id, name, slug, icon),
-            category:listing_categories(id, name, slug, type),
+            category:listing_categories!inner(id, name, slug, type),
             seller:profiles(id, username, verified_seller, rating, avatar_url),
             images:listing_images(id, url, is_cover, sort_order)
           `,
