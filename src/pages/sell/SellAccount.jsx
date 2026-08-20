@@ -23,6 +23,7 @@ export default function SellAccount() {
     fetchGames,
     nextStep,
     prevStep,
+    validateCurrentStep,
     submitListing,
     reset,
   } = useCreateListingStore();
@@ -30,7 +31,14 @@ export default function SellAccount() {
 
   useEffect(() => {
     fetchGames();
-  }, []);
+  }, [fetchGames]);
+
+  const handleNext = () => {
+    // Validate current step before advancing
+    if (validateCurrentStep()) {
+      nextStep();
+    }
+  };
 
   const handleSubmit = async () => {
     const result = await submitListing();
@@ -49,7 +57,7 @@ export default function SellAccount() {
             Create Listing
           </h1>
           <p className="text-text-muted text-sm mt-2">
-            Fill in the details to list your item for sale
+            Fill in the details to list your game assets or services for sale
           </p>
         </div>
 
@@ -67,13 +75,19 @@ export default function SellAccount() {
                 {i + 1 < currentStep ? "✓" : i + 1}
               </div>
               <span
-                className={`hidden sm:block text-sm ${i + 1 <= currentStep ? "text-arcane-gold" : "text-text-muted"}`}
+                className={`hidden sm:block text-sm ${
+                  i + 1 <= currentStep
+                    ? "text-arcane-gold font-medium"
+                    : "text-text-muted"
+                }`}
               >
                 {step}
               </span>
               {i < steps.length - 1 && (
                 <div
-                  className={`w-8 h-0.5 ${i + 1 < currentStep ? "bg-arcane-gold" : "bg-[#2A2932]"}`}
+                  className={`w-8 h-0.5 ${
+                    i + 1 < currentStep ? "bg-arcane-gold" : "bg-[#2A2932]"
+                  }`}
                 />
               )}
             </div>
@@ -81,7 +95,7 @@ export default function SellAccount() {
         </div>
 
         {/* Form Card */}
-        <div className="glass-card p-6 sm:p-8">
+        <div className="glass-card p-6 sm:p-8 bg-[#18171E] border border-[#2A2932] rounded-2xl">
           <AnimatePresence mode="wait">
             <motion.div
               key={currentStep}
@@ -97,17 +111,19 @@ export default function SellAccount() {
             </motion.div>
           </AnimatePresence>
 
-          {/* Navigation */}
+          {/* Navigation Controls */}
           <div className="flex items-center justify-between mt-8 pt-6 border-t border-[#2A2932]">
             <button
+              type="button"
               onClick={currentStep === 1 ? () => navigate(-1) : prevStep}
               className="flex items-center gap-2 text-sm text-text-muted hover:text-white transition-colors"
             >
               <HiOutlineArrowLeft className="w-4 h-4" />{" "}
               {currentStep === 1 ? "Cancel" : "Back"}
             </button>
+
             {currentStep < totalSteps ? (
-              <Button onClick={nextStep} variant="gold" size="md">
+              <Button onClick={handleNext} variant="gold" size="md">
                 Next <HiOutlineArrowRight className="w-4 h-4" />
               </Button>
             ) : (

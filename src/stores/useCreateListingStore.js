@@ -9,38 +9,165 @@ const createEmptyForm = () => ({
   title: "",
   description: "",
   price: "",
-  delivery_type: "manual",
+  delivery_type: "manual", // manual | instant | auto
   delivery_time: "30",
   instant_delivery: false,
   images: [],
+
+  // Account specific
   rank: "",
   level: "",
   server: "",
   hero_count: "",
   skin_count: "",
-  amount_options: [],
+
+  // Topup / Currency specific
+  amount_options: [], // [{ id: string, amount: string, price: string }]
+  delivery_method: "login", // login | gifting | redeem_code (for topups) or trade/mail (for items)
+  region: "",
+  platform: "",
+
+  // Boosting specific
+  service_type: "rank_boost", // rank_boost | win_boost | placement
+  current_rank: "",
+  target_rank: "",
+
+  // Items specific
+  item_name: "",
+  quantity: "1",
 });
 
-const getListingPayload = (formData) => ({
-  game_id: formData.game_id,
-  category_id: formData.category_id,
-  title: formData.title.trim(),
-  description: formData.description.trim(),
-  price: Number.parseFloat(formData.price),
-  delivery_type: formData.delivery_type || "manual",
-  delivery_time: String(formData.delivery_time || "30"),
-  instant_delivery:
-    formData.delivery_type === "instant" || Boolean(formData.instant_delivery),
-  rank: formData.rank?.trim() || null,
-  level: formData.level ? Number.parseInt(formData.level, 10) : null,
-  server: formData.server?.trim() || null,
-  hero_count: formData.hero_count
-    ? Number.parseInt(formData.hero_count, 10)
-    : 0,
-  skin_count: formData.skin_count
-    ? Number.parseInt(formData.skin_count, 10)
-    : 0,
-});
+const getListingPayload = (formData, categoryType) => {
+  const basePayload = {
+    game_id: formData.game_id,
+    category_id: formData.category_id,
+    title: formData.title.trim(),
+    description: formData.description.trim(),
+    price: formData.price ? Number.parseFloat(formData.price) : 0,
+    delivery_type: formData.delivery_type || "manual",
+    delivery_time: String(formData.delivery_time || "30"),
+    instant_delivery:
+      formData.delivery_type === "instant" ||
+      Boolean(formData.instant_delivery),
+  };
+
+  // Category specific mappings
+  if (categoryType === "account") {
+    return {
+      ...basePayload,
+      rank: formData.rank?.trim() || null,
+      level: formData.level ? Number.parseInt(formData.level, 10) : null,
+      server: formData.server?.trim() || null,
+      hero_count: formData.hero_count
+        ? Number.parseInt(formData.hero_count, 10)
+        : 0,
+      skin_count: formData.skin_count
+        ? Number.parseInt(formData.skin_count, 10)
+        : 0,
+      amount_options: [],
+      service_type: null,
+      target_rank: null,
+      item_name: null,
+      quantity: 1,
+      delivery_method: null,
+      region: null,
+      platform: null,
+    };
+  }
+
+  if (categoryType === "topup" || categoryType === "currency") {
+    const formattedOptions = (formData.amount_options || []).map((opt) => ({
+      amount: String(opt.amount).trim(),
+      price: Number.parseFloat(opt.price) || 0,
+    }));
+
+    // Auto set base price from the first tier option if not filled
+    const effectivePrice =
+      basePayload.price > 0
+        ? basePayload.price
+        : formattedOptions[0]?.price || 0;
+
+    return {
+      ...basePayload,
+      price: effectivePrice,
+      amount_options: formattedOptions,
+      delivery_method: formData.delivery_method || "login",
+      region: formData.region?.trim() || null,
+      platform: formData.platform?.trim() || null,
+      rank: null,
+      level: null,
+      server: null,
+      hero_count: 0,
+      skin_count: 0,
+      service_type: null,
+      target_rank: null,
+      item_name: null,
+      quantity: 1,
+    };
+  }
+
+  if (categoryType === "boosting") {
+    return {
+      ...basePayload,
+      service_type: formData.service_type || "rank_boost",
+      rank: formData.current_rank?.trim() || null, // store current rank in rank column
+      target_rank: formData.target_rank?.trim() || null,
+      region: formData.region?.trim() || null,
+      server: formData.server?.trim() || null,
+      platform: formData.platform?.trim() || null,
+      amount_options: [],
+      level: null,
+      hero_count: 0,
+      skin_count: 0,
+      item_name: null,
+      quantity: 1,
+      delivery_method: null,
+    };
+  }
+
+  if (categoryType === "items") {
+    return {
+      ...basePayload,
+      item_name: formData.item_name?.trim() || null,
+      quantity: formData.quantity
+        ? Math.max(1, Number.parseInt(formData.quantity, 10))
+        : 1,
+      delivery_method: formData.delivery_method || "direct_trade",
+      server: formData.server?.trim() || null,
+      region: formData.region?.trim() || null,
+      platform: formData.platform?.trim() || null,
+      amount_options: [],
+      rank: null,
+      level: null,
+      hero_count: 0,
+      skin_count: 0,
+      service_type: null,
+      target_rank: null,
+    };
+  }
+
+  // Fallback for general listings
+  return {
+    ...basePayload,
+    rank: formData.rank?.trim() || null,
+    level: formData.level ? Number.parseInt(formData.level, 10) : null,
+    server: formData.server?.trim() || null,
+    hero_count: formData.hero_count
+      ? Number.parseInt(formData.hero_count, 10)
+      : 0,
+    skin_count: formData.skin_count
+      ? Number.parseInt(formData.skin_count, 10)
+      : 0,
+    amount_options: formData.amount_options || [],
+    service_type: formData.service_type || null,
+    target_rank: formData.target_rank || null,
+    item_name: formData.item_name || null,
+    quantity: formData.quantity ? Number.parseInt(formData.quantity, 10) : 1,
+    delivery_method: formData.delivery_method || null,
+    region: formData.region || null,
+    platform: formData.platform || null,
+  };
+};
 
 const useCreateListingStore = create((set, get) => ({
   currentStep: 1,
@@ -73,6 +200,38 @@ const useCreateListingStore = create((set, get) => ({
       formData: {
         ...state.formData,
         [field]: value,
+      },
+    })),
+
+  // Amount options helper functions for Topup/Currency
+  addAmountOption: () =>
+    set((state) => ({
+      formData: {
+        ...state.formData,
+        amount_options: [
+          ...state.formData.amount_options,
+          { id: crypto.randomUUID(), amount: "", price: "" },
+        ],
+      },
+    })),
+
+  updateAmountOption: (id, field, value) =>
+    set((state) => ({
+      formData: {
+        ...state.formData,
+        amount_options: state.formData.amount_options.map((option) =>
+          option.id === id ? { ...option, [field]: value } : option,
+        ),
+      },
+    })),
+
+  removeAmountOption: (id) =>
+    set((state) => ({
+      formData: {
+        ...state.formData,
+        amount_options: state.formData.amount_options.filter(
+          (option) => option.id !== id,
+        ),
       },
     })),
 
@@ -157,7 +316,9 @@ const useCreateListingStore = create((set, get) => ({
   },
 
   validateCurrentStep: () => {
-    const { currentStep, formData } = get();
+    const { currentStep, formData, categories } = get();
+    const category = categories.find((c) => c.id === formData.category_id);
+    const categoryType = category?.type || "account";
 
     if (currentStep === 1 && !formData.game_id) {
       toast.error("Please select a game");
@@ -180,18 +341,97 @@ const useCreateListingStore = create((set, get) => ({
         return false;
       }
 
-      const price = Number.parseFloat(formData.price);
-
-      if (!Number.isFinite(price) || price <= 0) {
-        toast.error("Enter a valid price greater than zero");
+      // Delivery time validation
+      const deliveryTime = Number.parseInt(formData.delivery_time, 10);
+      if (!Number.isFinite(deliveryTime) || deliveryTime <= 0) {
+        toast.error("Enter a valid delivery time in minutes");
         return false;
       }
 
-      const deliveryTime = Number.parseInt(formData.delivery_time, 10);
+      // Validation for Accounts
+      if (categoryType === "account") {
+        const price = Number.parseFloat(formData.price);
+        if (!Number.isFinite(price) || price <= 0) {
+          toast.error("Enter a valid price greater than zero");
+          return false;
+        }
 
-      if (!Number.isFinite(deliveryTime) || deliveryTime <= 0) {
-        toast.error("Enter a valid delivery time");
-        return false;
+        if (formData.images.length < 5) {
+          toast.error(
+            "Account listings require at least 5 screenshots for buyer verification",
+          );
+          return false;
+        }
+      }
+
+      // Validation for Topup / Currency
+      if (categoryType === "topup" || categoryType === "currency") {
+        if (!formData.amount_options || formData.amount_options.length === 0) {
+          toast.error("Please add at least one amount & price option");
+          return false;
+        }
+
+        const hasInvalidOptions = formData.amount_options.some(
+          (opt) =>
+            !opt.amount.trim() ||
+            !opt.price ||
+            Number.parseFloat(opt.price) <= 0,
+        );
+        if (hasInvalidOptions) {
+          toast.error(
+            "Please complete all amount options with valid values and prices",
+          );
+          return false;
+        }
+
+        if (formData.images.length < 1) {
+          toast.error("Please upload at least 1 image/cover");
+          return false;
+        }
+      }
+
+      // Validation for Boosting
+      if (categoryType === "boosting") {
+        const price = Number.parseFloat(formData.price);
+        if (!Number.isFinite(price) || price <= 0) {
+          toast.error("Enter a valid price greater than zero");
+          return false;
+        }
+
+        if (!formData.current_rank?.trim() || !formData.target_rank?.trim()) {
+          toast.error("Please provide both Current Rank and Target Rank");
+          return false;
+        }
+
+        if (formData.images.length < 1) {
+          toast.error("Please upload at least 1 image");
+          return false;
+        }
+      }
+
+      // Validation for Items
+      if (categoryType === "items") {
+        if (!formData.item_name?.trim()) {
+          toast.error("Item name is required");
+          return false;
+        }
+
+        const quantity = Number.parseInt(formData.quantity, 10);
+        if (!Number.isFinite(quantity) || quantity < 1) {
+          toast.error("Quantity must be at least 1");
+          return false;
+        }
+
+        const price = Number.parseFloat(formData.price);
+        if (!Number.isFinite(price) || price <= 0) {
+          toast.error("Enter a valid price per item");
+          return false;
+        }
+
+        if (formData.images.length < 1) {
+          toast.error("Please upload at least 1 item image");
+          return false;
+        }
       }
     }
 
@@ -268,6 +508,15 @@ const useCreateListingStore = create((set, get) => ({
           sort_order: image.sort_order,
         }));
 
+      // Normalize amount options
+      const normalizedAmountOptions = Array.isArray(listing.amount_options)
+        ? listing.amount_options.map((opt) => ({
+            id: crypto.randomUUID(),
+            amount: String(opt.amount || ""),
+            price: String(opt.price || ""),
+          }))
+        : [];
+
       set({
         editorMode: mode === "duplicate" ? "duplicate" : "edit",
         editingListingId: listing.id,
@@ -287,14 +536,28 @@ const useCreateListingStore = create((set, get) => ({
           delivery_time: listing.delivery_time?.toString() || "30",
           instant_delivery: Boolean(listing.instant_delivery),
           images: existingImages,
+
+          // Accounts
           rank: listing.rank || "",
           level: listing.level?.toString() || "",
           server: listing.server || "",
           hero_count: listing.hero_count?.toString() || "",
           skin_count: listing.skin_count?.toString() || "",
-          amount_options: Array.isArray(listing.amount_options)
-            ? listing.amount_options
-            : [],
+
+          // Topup / Currency
+          amount_options: normalizedAmountOptions,
+          delivery_method: listing.delivery_method || "login",
+          region: listing.region || "",
+          platform: listing.platform || "",
+
+          // Boosting
+          service_type: listing.service_type || "rank_boost",
+          current_rank: listing.rank || "",
+          target_rank: listing.target_rank || "",
+
+          // Items
+          item_name: listing.item_name || "",
+          quantity: listing.quantity?.toString() || "1",
         },
         loadingListing: false,
       });
@@ -343,8 +606,9 @@ const useCreateListingStore = create((set, get) => ({
   },
 
   createListing: async (user, uploadedImages) => {
-    const { formData, editorMode } = get();
-    const payload = getListingPayload(formData);
+    const { formData, editorMode, categories } = get();
+    const category = categories.find((c) => c.id === formData.category_id);
+    const payload = getListingPayload(formData, category?.type);
 
     const { data: listing, error } = await supabase
       .from("listings")
@@ -359,10 +623,6 @@ const useCreateListingStore = create((set, get) => ({
 
     if (error) throw error;
 
-    /*
-     * In Duplicate mode existing URLs receive new listing_images rows.
-     * The original listing image rows are never changed or deleted.
-     */
     const existingUrls =
       editorMode === "duplicate"
         ? formData.images
@@ -394,13 +654,14 @@ const useCreateListingStore = create((set, get) => ({
   },
 
   updateListing: async (user, uploadedImages) => {
-    const { formData, editingListingId, originalImageIds } = get();
+    const { formData, editingListingId, originalImageIds, categories } = get();
 
     if (!editingListingId) {
       throw new Error("No listing selected for editing");
     }
 
-    const payload = getListingPayload(formData);
+    const category = categories.find((c) => c.id === formData.category_id);
+    const payload = getListingPayload(formData, category?.type);
 
     const { data: listing, error } = await supabase
       .from("listings")

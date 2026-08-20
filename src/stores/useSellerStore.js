@@ -326,41 +326,86 @@ const useSellerStore = create((set, get) => ({
   // ============================================
   // BULK UPLOAD (CSV)
   // ============================================
-  bulkUploadListings: async (csvData, gameId, categoryId) => {
+  bulkUploadListings: async (rows, gameId, categoryId) => {
     const user = useAuthStore.getState().user;
-    if (!csvData || csvData.length === 0)
-      return { success: false, error: "No data" };
+    if (!user) throw new Error("User not authenticated");
 
-    set({ loading: true });
-    try {
-      const listings = csvData.map((row) => ({
-        seller_id: user.id,
-        game_id: gameId,
-        category_id: categoryId,
-        title: row.title || `${row.rank || ""} Account`,
-        description: row.description || "",
-        price: parseFloat(row.price) || 0,
-        status: "active",
-        approval_status: "approved",
-        rank: row.rank || null,
-        level: row.level ? parseInt(row.level) : null,
-        server: row.server || null,
-      }));
+    // Fetch categories for this specific game to auto-match category types
+    const { data: gameCategories } = await supabase
+      .from("listing_categories")
+      .select("id, name, type")
+      .eq("game_id", gameId);
 
-      const { error } = await supabase.from("listings").insert(listings);
-      if (error) throw error;
+    const categories = gameCategories || [];
 
-      toast.success(`${listings.length} listings created!`);
-      get().fetchListings();
-      get().fetchStats();
-      set({ loading: false });
-      return { success: true, count: listings.length };
-    } catch (error) {
-      toast.error("Bulk upload failed: " + error.message);
-      set({ loading: false });
-      return { success: false, error: error.message };
+    const resolveCategoryId = (row) => {
+      // If seller selected a specific category in modal, use it
+      if (categoryId) return categoryId;
+
+      // 1. Detect Topup / Currency
+      if (row.amount_options && row.amount_options.length > 0) {
+        const topupCat = categories.find(
+          (c) => c.type === "topup" || c.type === "currency",
+        );
+        if (topupCat) return topupCat.id;
+      }
+
+      // 2. Detect Boosting
+      if (row.service_type || row.target_rank) {
+        const boostCat = categories.find((c) => c.type === "boosting");
+        if (boostCat) return boostCat.id;
+      }
+
+      // 3. Detect Items
+      if (row.item_name || (row.quantity && row.quantity > 1)) {
+        const itemCat = categories.find((c) => c.type === "items");
+        if (itemCat) return itemCat.id;
+      }
+
+      // 4. Detect Account
+      if (row.rank || row.level || row.skin_count || row.hero_count) {
+        const accountCat = categories.find((c) => c.type === "account");
+        if (accountCat) return accountCat.id;
+      }
+
+      // Fallback to first category or null
+      return categories[0]?.id || null;
+    };
+
+    const listingsToInsert = rows.map((row) => ({
+      seller_id: user.id,
+      game_id: gameId,
+      category_id: resolveCategoryId(row),
+      title: row.title,
+      description: row.description,
+      price: row.price,
+      delivery_type: row.delivery_type || "manual",
+      delivery_time: row.delivery_time || "30",
+      rank: row.rank || null,
+      level: row.level || null,
+      server: row.server || null,
+      hero_count: row.hero_count || 0,
+      skin_count: row.skin_count || 0,
+      amount_options: row.amount_options || [],
+      delivery_method: row.delivery_method || null,
+      region: row.region || null,
+      platform: row.platform || null,
+      service_type: row.service_type || null,
+      target_rank: row.target_rank || null,
+      item_name: row.item_name || null,
+      quantity: row.quantity || 1,
+      status: "active",
+      approval_status: "approved",
+    }));
+
+    const { error } = await supabase.from("listings").insert(listingsToInsert);
+    if (error) {
+      throw new Error(error.message);
     }
+
+    return { success: true };
   },
+
   // Seller Levels
   getSellerLevel: () => {
     const { stats } = get();

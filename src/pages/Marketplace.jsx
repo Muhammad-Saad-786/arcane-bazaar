@@ -1,12 +1,18 @@
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import {
   HiOutlineSearch,
   HiOutlineFilter,
   HiOutlineX,
   HiOutlineLightningBolt,
   HiOutlineStar,
+  HiOutlineShieldCheck,
+  HiOutlineUserGroup,
+  HiOutlineCurrencyDollar,
+  HiOutlineTrendingUp,
+  HiOutlineCube,
+  HiOutlineChevronDown,
 } from "react-icons/hi";
 import useMarketplaceStore from "../stores/useMarketplaceStore";
 import GameSelector from "../components/games/GameSelector";
@@ -14,10 +20,18 @@ import ListingCard from "../components/listings/ListingCard";
 import SEO from "../components/ui/SEO";
 
 const sortOptions = [
-  { value: "newest", label: "Newest" },
+  { value: "newest", label: "Newest Arrivals" },
   { value: "price-low", label: "Price: Low to High" },
   { value: "price-high", label: "Price: High to Low" },
   { value: "popular", label: "Most Popular" },
+];
+
+const categoryTypeTabs = [
+  { id: "", label: "All Offers", icon: null },
+  { id: "account", label: "Accounts", icon: HiOutlineUserGroup },
+  { id: "topup", label: "Top Up & Currency", icon: HiOutlineCurrencyDollar },
+  { id: "boosting", label: "Boosting", icon: HiOutlineTrendingUp },
+  { id: "items", label: "Items & Skins", icon: HiOutlineCube },
 ];
 
 const gameRanks = {
@@ -64,34 +78,26 @@ const gameRanks = {
     "Supreme",
     "Global Elite",
   ],
-  default: ["Beginner", "Intermediate", "Advanced", "Expert", "Professional"],
+  default: ["Bronze", "Silver", "Gold", "Platinum", "Diamond", "Master"],
 };
 
 const SkeletonCard = () => (
-  <div className="rounded-xl bg-arcane-surface border border-arcane-border overflow-hidden animate-pulse">
-    <div className="aspect-[4/3] bg-arcane-surface" />
-    <div className="p-3 space-y-2">
-      <div className="h-3 w-3/4 rounded bg-arcane-surface" />
-      <div className="h-3 w-1/2 rounded bg-arcane-surface" />
-      <div className="flex justify-between">
-        <div className="h-4 w-16 rounded bg-arcane-surface" />
-        <div className="h-3 w-10 rounded bg-arcane-surface" />
+  <div className="rounded-2xl bg-[#18171E] border border-[#2A2932] overflow-hidden animate-pulse">
+    <div className="aspect-[16/10] bg-[#1E1D24]" />
+    <div className="p-4 space-y-2.5">
+      <div className="h-4 w-3/4 rounded bg-[#1E1D24]" />
+      <div className="h-3 w-1/2 rounded bg-[#1E1D24]" />
+      <div className="flex justify-between items-center pt-2">
+        <div className="h-5 w-20 rounded bg-[#1E1D24]" />
+        <div className="h-4 w-12 rounded bg-[#1E1D24]" />
       </div>
     </div>
   </div>
 );
 
-const SkeletonGrid = () => (
-  <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
-    {Array.from({ length: 10 }, (_, i) => (
-      <SkeletonCard key={i} />
-    ))}
-  </div>
-);
-
 export default function Marketplace() {
-  const [searchParams] = useSearchParams();
-  const [showFilters, setShowFilters] = useState(false);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
 
   const {
     listings,
@@ -100,8 +106,14 @@ export default function Marketplace() {
     currentPage,
     pageSize,
     filters,
+    games,
+    categories,
+    availableServers,
+    availablePlatforms,
     setFilter,
+    setMultipleFilters,
     resetFilters,
+    resetAll,
     fetchListings,
     fetchGames,
     fetchCategories,
@@ -110,34 +122,24 @@ export default function Marketplace() {
 
   const isInitialMount = useRef(true);
 
-  // Initial load - set filters directly without triggering multiple fetches
+  // Sync URL Params on initial load
   useEffect(() => {
     const init = async () => {
       await fetchGames();
       await fetchCategories();
 
-      const game = searchParams.get("game");
-      const category = searchParams.get("category");
-      const search = searchParams.get("search");
+      const game = searchParams.get("game") || "";
+      const category = searchParams.get("category") || "";
+      const type = searchParams.get("type") || "";
+      const search = searchParams.get("search") || "";
 
-      // Set all filters at once using setState directly
-      useMarketplaceStore.setState((state) => ({
-        filters: {
-          ...state.filters,
-          game: game || "",
-          category: category || "",
-          search: search || "",
-        },
-        currentPage: 1,
-      }));
-
-      // Fetch listings with the updated filters
+      setMultipleFilters({ game, category, type, search });
       await fetchListings();
     };
     init();
   }, []);
 
-  // Fetch on filter/page changes (skip first render)
+  // Fetch listings on filter change
   useEffect(() => {
     if (isInitialMount.current) {
       isInitialMount.current = false;
@@ -146,48 +148,136 @@ export default function Marketplace() {
     fetchListings();
   }, [filters, currentPage]);
 
-  // Fetch categories when game changes
+  // When selected game changes, update category pool
   useEffect(() => {
-    if (filters.game) fetchCategories(filters.game);
+    if (filters.game) {
+      fetchCategories(filters.game);
+    }
   }, [filters.game]);
 
   const totalPages = Math.ceil(totalCount / pageSize);
+  const currentGame = games.find((g) => g.slug === filters.game);
   const ranks = filters.game
     ? gameRanks[filters.game] || gameRanks.default
     : gameRanks.default;
 
   const handleGameSelect = (slug) => {
-    if (!slug || slug === "all") {
-      setFilter("game", "");
-      setFilter("category", "");
-      setFilter("type", "");
-    } else {
-      setFilter("game", slug);
-      setFilter("category", "");
-      setFilter("type", "");
-    }
-    fetchListings();
+    const selectedSlug = !slug || slug === "all" ? "" : slug;
+    setMultipleFilters({
+      game: selectedSlug,
+      category: "",
+      type: "",
+      server: "",
+      rank: "",
+      region: "",
+      platform: "",
+    });
+    setSearchParams(selectedSlug ? { game: selectedSlug } : {});
   };
 
+  const handleTypeSelect = (typeId) => {
+    setMultipleFilters({
+      type: typeId,
+      category: "",
+      serviceType: "",
+      deliveryMethod: "",
+    });
+  };
+
+  const activeFiltersCount = [
+    filters.minPrice,
+    filters.maxPrice,
+    filters.server,
+    filters.rank,
+    filters.region,
+    filters.platform,
+    filters.serviceType,
+    filters.deliveryMethod,
+    filters.featured,
+    filters.instantDelivery,
+  ].filter(Boolean).length;
+
   return (
-    <div className="min-h-screen bg-arcane-dark pt-20 pb-16">
+    <div className="min-h-screen bg-[#121118] text-white pt-24 pb-20">
       <SEO
-        title="Marketplace"
-        description="Browse 135+ games. Find the best deals on gaming accounts, currency, and items."
+        title={
+          currentGame
+            ? `${currentGame.name} Marketplace | Arcane Bazaar`
+            : "Gaming Marketplace"
+        }
+        description="Buy verified gaming accounts, currency top-ups, boosting services, and items safely on Arcane Bazaar."
       />
-      <div className="max-w-7xl mx-auto px-3 sm:px-4">
-        {/* Header - Compact */}
-        <div className="mb-4">
-          <h1 className="text-xl sm:text-2xl font-display font-extrabold text-white">
-            Marketplace
-          </h1>
-          <p className="text-text-muted text-xs mt-0.5">
-            {totalCount.toLocaleString()} listings
-          </p>
+
+      <div className="max-w-7xl mx-auto px-4 sm:px-6">
+        {/* Marketplace Header Banner */}
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-6 mb-6 border-b border-[#2A2932]/70">
+          <div>
+            <div className="flex items-center gap-2">
+              <h1 className="text-2xl sm:text-3xl font-display font-extrabold tracking-tight">
+                {currentGame ? currentGame.name : "Global Marketplace"}
+              </h1>
+              {currentGame?.icon && (
+                <img
+                  src={currentGame.icon}
+                  alt={currentGame.name}
+                  className="w-7 h-7 object-contain rounded-lg bg-[#1E1D24] p-0.5 border border-[#2A2932]"
+                />
+              )}
+            </div>
+            <p className="text-text-muted text-xs sm:text-sm mt-1 flex items-center gap-2">
+              <span className="text-arcane-gold font-semibold">
+                {totalCount.toLocaleString()}
+              </span>{" "}
+              active listings
+              <span className="inline-block w-1 h-1 rounded-full bg-[#2A2932]" />
+              <span className="text-emerald-400 inline-flex items-center gap-1 font-medium">
+                <HiOutlineShieldCheck className="w-4 h-4" /> Escrow &amp; Buyer
+                Protected
+              </span>
+            </p>
+          </div>
+
+          {/* Quick Search & Sort */}
+          <div className="flex items-center gap-2.5 w-full md:w-auto">
+            <div className="relative flex-1 md:w-72">
+              <HiOutlineSearch className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-text-muted" />
+              <input
+                type="text"
+                value={filters.search}
+                onChange={(e) => setFilter("search", e.target.value)}
+                placeholder="Search skins, ranks, items..."
+                className="w-full bg-[#18171E] border border-[#2A2932] rounded-xl py-2.5 pl-10 pr-4 text-sm text-white placeholder:text-gray-500 outline-none focus:border-arcane-gold/50 transition-all"
+              />
+              {filters.search && (
+                <button
+                  onClick={() => setFilter("search", "")}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-text-muted hover:text-white"
+                >
+                  <HiOutlineX className="w-3.5 h-3.5" />
+                </button>
+              )}
+            </div>
+
+            <select
+              value={filters.sortBy}
+              onChange={(e) => setFilter("sortBy", e.target.value)}
+              className="bg-[#18171E] border border-[#2A2932] rounded-xl px-3.5 py-2.5 text-sm text-white outline-none focus:border-arcane-gold/50 cursor-pointer"
+            >
+              {sortOptions.map((opt) => (
+                <option
+                  key={opt.value}
+                  value={opt.value}
+                  className="bg-[#18171E]"
+                >
+                  {opt.label}
+                </option>
+              ))}
+            </select>
+          </div>
         </div>
 
-        {/* Game Selector - Compact */}
-        <div className="mb-4">
+        {/* Game Horizontal Selector */}
+        <div className="mb-6">
           <GameSelector
             selected={filters.game}
             onSelect={handleGameSelect}
@@ -195,84 +285,277 @@ export default function Marketplace() {
           />
         </div>
 
-        {/* Search Bar - Single Row */}
-        <div className="flex gap-2 mb-4">
-          <div className="relative flex-1">
-            <HiOutlineSearch className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-text-muted" />
-            <input
-              type="text"
-              value={filters.search}
-              onChange={(e) => setFilter("search", e.target.value)}
-              placeholder="Search games, items..."
-              className="w-full bg-arcane-surface border border-arcane-border rounded-lg py-2.5 pl-9 pr-3 text-sm text-white placeholder-text-muted outline-none focus:border-arcane-purple/50 transition-all"
-            />
+        {/* ============ ELDORADO-STYLE CATEGORY TABS ============ */}
+        <div className="flex items-center gap-2 overflow-x-auto pb-3 mb-4 scrollbar-none border-b border-[#2A2932]/40">
+          {categoryTypeTabs.map((tab) => {
+            const Icon = tab.icon;
+            const isSelected = filters.type === tab.id;
+            return (
+              <button
+                key={tab.id}
+                onClick={() => handleTypeSelect(tab.id)}
+                className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-semibold whitespace-nowrap transition-all ${
+                  isSelected
+                    ? "bg-arcane-gold text-[#141319] shadow-lg shadow-arcane-gold/10"
+                    : "bg-[#18171E] text-text-muted hover:text-white hover:bg-[#1E1D24] border border-[#2A2932]"
+                }`}
+              >
+                {Icon && <Icon className="w-4 h-4" />}
+                {tab.label}
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Dynamic Category Sub-filter & Quick Pills Toolbar */}
+        <div className="bg-[#18171E]/90 border border-[#2A2932] rounded-2xl p-4 mb-6 shadow-sm">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            {/* Quick Flag Chips */}
+            <div className="flex items-center gap-2 flex-wrap">
+              <button
+                onClick={() =>
+                  setFilter("instantDelivery", !filters.instantDelivery)
+                }
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+                  filters.instantDelivery
+                    ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30"
+                    : "bg-[#141319] text-text-muted hover:text-white border border-[#2A2932]"
+                }`}
+              >
+                <HiOutlineLightningBolt className="w-3.5 h-3.5" /> Instant
+                Delivery
+              </button>
+
+              <button
+                onClick={() => setFilter("featured", !filters.featured)}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+                  filters.featured
+                    ? "bg-arcane-gold/20 text-arcane-gold border border-arcane-gold/30"
+                    : "bg-[#141319] text-text-muted hover:text-white border border-[#2A2932]"
+                }`}
+              >
+                <HiOutlineStar className="w-3.5 h-3.5" /> Featured Offers
+              </button>
+
+              <button
+                onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
+                className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-semibold border transition-all ${
+                  showAdvancedFilters || activeFiltersCount > 0
+                    ? "bg-arcane-gold/10 text-arcane-gold border-arcane-gold/30"
+                    : "bg-[#141319] text-text-muted hover:text-white border-[#2A2932]"
+                }`}
+              >
+                <HiOutlineFilter className="w-3.5 h-3.5" /> Filter Options
+                {activeFiltersCount > 0 && (
+                  <span className="w-4 h-4 rounded-full bg-arcane-gold text-[#141319] text-[10px] flex items-center justify-center font-bold">
+                    {activeFiltersCount}
+                  </span>
+                )}
+                <HiOutlineChevronDown
+                  className={`w-3.5 h-3.5 transition-transform ${showAdvancedFilters ? "rotate-180" : ""}`}
+                />
+              </button>
+            </div>
+
+            {/* Price Quick Filter */}
+            <div className="flex items-center gap-2">
+              <div className="flex items-center bg-[#141319] border border-[#2A2932] rounded-lg px-2 py-1 text-xs">
+                <span className="text-text-muted mr-1">$</span>
+                <input
+                  type="number"
+                  placeholder="Min"
+                  value={filters.minPrice}
+                  onChange={(e) => setFilter("minPrice", e.target.value)}
+                  className="w-14 bg-transparent text-white outline-none text-xs"
+                />
+                <span className="text-text-muted mx-1">-</span>
+                <span className="text-text-muted mr-1">$</span>
+                <input
+                  type="number"
+                  placeholder="Max"
+                  value={filters.maxPrice}
+                  onChange={(e) => setFilter("maxPrice", e.target.value)}
+                  className="w-14 bg-transparent text-white outline-none text-xs"
+                />
+              </div>
+
+              {(activeFiltersCount > 0 || filters.search || filters.type) && (
+                <button
+                  onClick={resetFilters}
+                  className="text-xs text-text-muted hover:text-red-400 underline transition-colors px-2"
+                >
+                  Clear All
+                </button>
+              )}
+            </div>
           </div>
-          <select
-            value={filters.sortBy}
-            onChange={(e) => setFilter("sortBy", e.target.value)}
-            className="bg-arcane-surface border border-arcane-border rounded-lg px-3 py-2.5 text-sm text-white outline-none"
-          >
-            {sortOptions.map((o) => (
-              <option key={o.value} value={o.value} className="bg-arcane-dark">
-                {o.label}
-              </option>
-            ))}
-          </select>
+
+          {/* ============ ADVANCED CATEGORY-SPECIFIC FILTER ACCORDION ============ */}
+          <AnimatePresence>
+            {showAdvancedFilters && (
+              <motion.div
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: "auto" }}
+                exit={{ opacity: 0, height: 0 }}
+                className="pt-4 mt-3 border-t border-[#2A2932] grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs"
+              >
+                {/* Specific Category Sub-dropdown */}
+                {categories.length > 0 && (
+                  <div>
+                    <label className="block text-text-muted mb-1 text-[11px]">
+                      Sub-Category
+                    </label>
+                    <select
+                      value={filters.category}
+                      onChange={(e) => setFilter("category", e.target.value)}
+                      className="w-full bg-[#141319] border border-[#2A2932] rounded-lg py-2 px-2.5 text-white outline-none"
+                    >
+                      <option value="">All Categories</option>
+                      {categories.map((c) => (
+                        <option key={c.id} value={c.slug}>
+                          {c.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+
+                {/* Account Specific: Rank Dropdown */}
+                {(!filters.type || filters.type === "account") && (
+                  <div>
+                    <label className="block text-text-muted mb-1 text-[11px]">
+                      Rank
+                    </label>
+                    <select
+                      value={filters.rank}
+                      onChange={(e) => setFilter("rank", e.target.value)}
+                      className="w-full bg-[#141319] border border-[#2A2932] rounded-lg py-2 px-2.5 text-white outline-none"
+                    >
+                      <option value="">Any Rank</option>
+                      {ranks.map((r) => (
+                        <option key={r} value={r}>
+                          {r}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+
+                {/* Boosting Specific: Service Type */}
+                {filters.type === "boosting" && (
+                  <div>
+                    <label className="block text-text-muted mb-1 text-[11px]">
+                      Boosting Service
+                    </label>
+                    <select
+                      value={filters.serviceType}
+                      onChange={(e) => setFilter("serviceType", e.target.value)}
+                      className="w-full bg-[#141319] border border-[#2A2932] rounded-lg py-2 px-2.5 text-white outline-none"
+                    >
+                      <option value="">All Services</option>
+                      <option value="rank_boost">Rank Boost</option>
+                      <option value="win_boost">Net Wins Boost</option>
+                      <option value="placement">Placement Matches</option>
+                    </select>
+                  </div>
+                )}
+
+                {/* Topup / Items Specific: Delivery Method */}
+                {(filters.type === "topup" || filters.type === "items") && (
+                  <div>
+                    <label className="block text-text-muted mb-1 text-[11px]">
+                      Delivery Method
+                    </label>
+                    <select
+                      value={filters.deliveryMethod}
+                      onChange={(e) =>
+                        setFilter("deliveryMethod", e.target.value)
+                      }
+                      className="w-full bg-[#141319] border border-[#2A2932] rounded-lg py-2 px-2.5 text-white outline-none"
+                    >
+                      <option value="">Any Method</option>
+                      <option value="login">Account Login</option>
+                      <option value="redeem_code">Redeem Code</option>
+                      <option value="gifting">In-Game Gift</option>
+                      <option value="direct_trade">Direct Trade</option>
+                    </select>
+                  </div>
+                )}
+
+                {/* Server Filter */}
+                <div>
+                  <label className="block text-text-muted mb-1 text-[11px]">
+                    Server / Realm
+                  </label>
+                  <input
+                    type="text"
+                    value={filters.server}
+                    onChange={(e) => setFilter("server", e.target.value)}
+                    placeholder="e.g. NA / EU / Global"
+                    className="w-full bg-[#141319] border border-[#2A2932] rounded-lg py-2 px-2.5 text-white outline-none"
+                  />
+                </div>
+
+                {/* Platform Filter */}
+                <div>
+                  <label className="block text-text-muted mb-1 text-[11px]">
+                    Platform
+                  </label>
+                  <select
+                    value={filters.platform}
+                    onChange={(e) => setFilter("platform", e.target.value)}
+                    className="w-full bg-[#141319] border border-[#2A2932] rounded-lg py-2 px-2.5 text-white outline-none"
+                  >
+                    <option value="">All Platforms</option>
+                    <option value="PC">PC</option>
+                    <option value="Mobile">Mobile (iOS / Android)</option>
+                    <option value="PlayStation">PlayStation</option>
+                    <option value="Xbox">Xbox</option>
+                  </select>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
 
-        {/* Quick Filter Chips */}
-        <div className="flex gap-2 mb-4 flex-wrap">
-          {filters.game && (
-            <button
-              onClick={() => {
-                setFilter("game", "");
-                setFilter("category", "");
-                setFilter("type", "");
-                fetchListings();
-              }}
-              className="px-2.5 py-1 rounded-full text-xs bg-arcane-purple/20 text-arcane-purple border border-arcane-purple/30 flex items-center gap-1"
-            >
-              <HiOutlineX className="w-3 h-3" /> Clear
-            </button>
-          )}
-          <button
-            onClick={() => setFilter("featured", !filters.featured)}
-            className={`px-2.5 py-1 rounded-full text-xs font-medium flex items-center gap-1 transition-all ${filters.featured ? "bg-arcane-gold/20 text-arcane-gold border border-arcane-gold/30" : "bg-arcane-surface border border-arcane-border text-text-muted hover:text-white"}`}
-          >
-            <HiOutlineStar className="w-3 h-3" /> Featured
-          </button>
-          <button
-            onClick={() =>
-              setFilter("instantDelivery", !filters.instantDelivery)
-            }
-            className={`px-2.5 py-1 rounded-full text-xs font-medium flex items-center gap-1 transition-all ${filters.instantDelivery ? "bg-arcane-gold/20 text-arcane-gold border border-arcane-gold/30" : "bg-arcane-surface border border-arcane-border text-text-muted hover:text-white"}`}
-          >
-            <HiOutlineLightningBolt className="w-3 h-3" /> Instant
-          </button>
-        </div>
-
-        {/* Listings Grid - Compact like Eldorado */}
+        {/* ============ LISTINGS GRID ============ */}
         <div>
           {loading ? (
-            <SkeletonGrid />
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 sm:gap-4">
+              {Array.from({ length: 10 }).map((_, i) => (
+                <SkeletonCard key={i} />
+              ))}
+            </div>
           ) : listings.length === 0 ? (
-            <div className="text-center py-16">
-              <p className="text-text-muted text-base">No listings found</p>
+            <div className="text-center py-20 bg-[#18171E]/50 border border-[#2A2932] rounded-2xl">
+              <p className="text-white text-base font-semibold">
+                No listings match your criteria
+              </p>
+              <p className="text-text-muted text-xs mt-1">
+                Try resetting filters or searching for different terms.
+              </p>
+              <button
+                onClick={resetAll}
+                className="mt-4 px-4 py-2 bg-arcane-gold text-[#141319] font-bold text-xs rounded-xl hover:bg-arcane-gold/90 transition-all"
+              >
+                Reset All Filters
+              </button>
             </div>
           ) : (
             <>
-              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-2.5 sm:gap-3">
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 sm:gap-4">
                 {listings.map((listing) => (
                   <ListingCard key={listing.id} listing={listing} />
                 ))}
               </div>
 
+              {/* Pagination */}
               {totalPages > 1 && (
-                <div className="flex justify-center gap-1.5 mt-6">
+                <div className="flex justify-center items-center gap-2 mt-8">
                   <button
                     onClick={() => setPage(Math.max(1, currentPage - 1))}
                     disabled={currentPage === 1}
-                    className="px-3 py-2 rounded-lg text-xs text-white bg-arcane-surface hover:bg-arcane-border disabled:opacity-30"
+                    className="px-3.5 py-2 rounded-xl text-xs font-semibold text-white bg-[#18171E] border border-[#2A2932] hover:border-arcane-gold/50 disabled:opacity-30 transition-all"
                   >
                     Prev
                   </button>
@@ -282,7 +565,11 @@ export default function Marketplace() {
                       <button
                         key={page}
                         onClick={() => setPage(page)}
-                        className={`w-8 h-8 rounded-lg text-xs font-medium ${currentPage === page ? "bg-arcane-purple text-white" : "text-white bg-arcane-surface hover:bg-arcane-border"}`}
+                        className={`w-9 h-9 rounded-xl text-xs font-bold transition-all ${
+                          currentPage === page
+                            ? "bg-arcane-gold text-[#141319] shadow-md shadow-arcane-gold/20"
+                            : "text-white bg-[#18171E] border border-[#2A2932] hover:border-arcane-gold/50"
+                        }`}
                       >
                         {page}
                       </button>
@@ -292,7 +579,7 @@ export default function Marketplace() {
                       setPage(Math.min(totalPages, currentPage + 1))
                     }
                     disabled={currentPage === totalPages}
-                    className="px-3 py-2 rounded-lg text-xs text-white bg-arcane-surface hover:bg-arcane-border disabled:opacity-30"
+                    className="px-3.5 py-2 rounded-xl text-xs font-semibold text-white bg-[#18171E] border border-[#2A2932] hover:border-arcane-gold/50 disabled:opacity-30 transition-all"
                   >
                     Next
                   </button>

@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   HiOutlinePencil,
@@ -12,12 +12,12 @@ import {
   HiOutlineClipboardCopy,
   HiOutlineDownload,
   HiOutlineX,
+  HiOutlineInformationCircle,
 } from "react-icons/hi";
 import useSellerStore from "../../stores/useSellerStore";
 import GlassCard from "../../components/ui/GlassCard";
 import Spinner from "../../components/ui/Spinner";
 import Button from "../../components/ui/Button";
-import { useNavigate } from "react-router-dom";
 import useCreateListingStore from "../../stores/useCreateListingStore";
 import useMarketplaceStore from "../../stores/useMarketplaceStore";
 import toast from "react-hot-toast";
@@ -30,6 +30,34 @@ const statusColors = {
   rejected: "bg-red-500/20 text-red-400",
 };
 
+// CSV column parsing with quotation escaping support
+function parseCSVLine(text) {
+  const result = [];
+  let cur = "";
+  let inQuotes = false;
+
+  for (let i = 0; i < text.length; i++) {
+    const char = text[i];
+    const nextChar = text[i + 1];
+
+    if (char === '"') {
+      if (inQuotes && nextChar === '"') {
+        cur += '"';
+        i++;
+      } else {
+        inQuotes = !inQuotes;
+      }
+    } else if (char === "," && !inQuotes) {
+      result.push(cur.trim());
+      cur = "";
+    } else {
+      cur += char;
+    }
+  }
+  result.push(cur.trim());
+  return result;
+}
+
 export default function ListingsManagement() {
   const {
     listings,
@@ -38,8 +66,8 @@ export default function ListingsManagement() {
     deleteListing,
     updateListingStatus,
     bulkUploadListings,
-    games,
   } = useSellerStore();
+
   const [filter, setFilter] = useState("all");
   const [search, setSearch] = useState("");
   const navigate = useNavigate();
@@ -54,13 +82,12 @@ export default function ListingsManagement() {
   const [bulkCategories, setBulkCategories] = useState([]);
   const { games: allGames, fetchGames } = useMarketplaceStore();
 
-  // In useEffect:
   useEffect(() => {
     fetchListings();
     fetchGames();
-  }, []);
+  }, [fetchListings, fetchGames]);
 
-  // Fetch categories when game changes
+  // Fetch categories when selected game changes
   useEffect(() => {
     if (bulkGame) {
       const fetchCats = async () => {
@@ -74,8 +101,139 @@ export default function ListingsManagement() {
       fetchCats();
     } else {
       setBulkCategories([]);
+      setBulkCategory("");
     }
   }, [bulkGame]);
+
+  // Dynamic sample CSV template generator with all 4 category examples
+  const downloadSampleTemplate = () => {
+    const csvContent = [
+      // Header row
+      [
+        "title",
+        "description",
+        "price",
+        "delivery_type",
+        "delivery_time",
+        "rank",
+        "level",
+        "server",
+        "hero_count",
+        "skin_count",
+        "amount_options",
+        "delivery_method",
+        "region",
+        "platform",
+        "service_type",
+        "target_rank",
+        "item_name",
+        "quantity",
+      ].join(","),
+
+      // Row 1: Account Example
+      [
+        '"Radiant Peak Account | 45 Skins | Full Access"',
+        '"Original owner account with prime skins and email change available."',
+        "149.99",
+        "instant",
+        "15",
+        '"Radiant"',
+        "120",
+        '"NA"',
+        "28",
+        "45",
+        '""',
+        '""',
+        '""',
+        '"PC"',
+        '""',
+        '""',
+        '""',
+        "1",
+      ].join(","),
+
+      // Row 2: Topup / Currency Example
+      [
+        '"Mobile Legends 1000+ Diamonds Instant Top-up"',
+        '"Instant direct ID recharge without login required."',
+        "18.50",
+        "auto",
+        "5",
+        '""',
+        '""',
+        '""',
+        "0",
+        "0",
+        '\"[{\\"amount\\":\\"500 Diamonds\\",\\"price\\":9.50},{\\"amount\\":\\"1000 Diamonds\\",\\"price\\":18.50}]\"',
+        '"redeem_code"',
+        '"Global"',
+        '"Mobile"',
+        '""',
+        '""',
+        '""',
+        "1",
+      ].join(","),
+
+      // Row 3: Boosting Service Example
+      [
+        '"Valorant Competitive Rank Boost (Gold to Diamond)"',
+        '"Professional duo or solo rank boost with 80%+ winrate guarantee."',
+        "45.00",
+        "manual",
+        "120",
+        '"Gold II"',
+        '""',
+        '"NA"',
+        "0",
+        "0",
+        '""',
+        '""',
+        '"NA"',
+        '"PC"',
+        '"rank_boost"',
+        '"Diamond I"',
+        '""',
+        "1",
+      ].join(","),
+
+      // Row 4: Items Example
+      [
+        '"Path of Exile 50x Divine Orbs [Standard League]"',
+        '"Fast face-to-face in-game trade within 10 minutes."',
+        "32.00",
+        "manual",
+        "10",
+        '""',
+        '""',
+        '"Standard"',
+        "0",
+        "0",
+        '""',
+        '"direct_trade"',
+        '"Global"',
+        '"PC"',
+        '""',
+        '""',
+        '"Divine Orb"',
+        "50",
+      ].join(","),
+    ].join("\r\n");
+
+    // Create UTF-8 encoded Blob
+    const blob = new Blob(["\uFEFF" + csvContent], {
+      type: "text/csv;charset=utf-8;",
+    });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+
+    link.setAttribute("href", url);
+    link.setAttribute("download", "arcane_bazaar_sample_template.csv");
+    link.style.visibility = "hidden";
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
 
   const handleBulkUpload = async () => {
     if (!csvFile) {
@@ -90,39 +248,92 @@ export default function ListingsManagement() {
     setBulkLoading(true);
     try {
       const text = await csvFile.text();
-      const rows = text
-        .split("\n")
-        .slice(1) // Skip header row
-        .map((row) => {
-          const cols = row
-            .split(",")
-            .map((c) => c.trim().replace(/^"|"$/g, ""));
+      const lines = text
+        .split(/\r?\n/)
+        .map((l) => l.trim())
+        .filter((l) => l.length > 0);
+
+      if (lines.length <= 1) {
+        toast.error("CSV file contains no rows");
+        setBulkLoading(false);
+        return;
+      }
+
+      const headerCols = parseCSVLine(lines[0]).map((h) =>
+        h.toLowerCase().replace(/[^a-z0-9_]/g, ""),
+      );
+
+      const rows = lines
+        .slice(1)
+        .map((rowLine) => {
+          const cols = parseCSVLine(rowLine);
+          const rowData = {};
+
+          headerCols.forEach((header, index) => {
+            rowData[header] = cols[index] || "";
+          });
+
+          // Parse amount_options if valid JSON string
+          let parsedAmountOptions = [];
+          if (rowData.amount_options) {
+            try {
+              parsedAmountOptions = JSON.parse(rowData.amount_options);
+            } catch {
+              parsedAmountOptions = [];
+            }
+          }
+
           return {
-            title: cols[0] || "",
-            description: cols[1] || "",
-            price: cols[2] || "0",
-            rank: cols[3] || "",
-            level: cols[4] || "",
-            server: cols[5] || "",
+            title: rowData.title || "",
+            description: rowData.description || "",
+            price: Number.parseFloat(rowData.price) || 0,
+            delivery_type: rowData.delivery_type || "manual",
+            delivery_time: String(rowData.delivery_time || "30"),
+            rank: rowData.rank || null,
+            level: rowData.level ? Number.parseInt(rowData.level, 10) : null,
+            server: rowData.server || null,
+            hero_count: rowData.hero_count
+              ? Number.parseInt(rowData.hero_count, 10)
+              : 0,
+            skin_count: rowData.skin_count
+              ? Number.parseInt(rowData.skin_count, 10)
+              : 0,
+            amount_options: parsedAmountOptions,
+            delivery_method: rowData.delivery_method || null,
+            region: rowData.region || null,
+            platform: rowData.platform || null,
+            service_type: rowData.service_type || null,
+            target_rank: rowData.target_rank || null,
+            item_name: rowData.item_name || null,
+            quantity: rowData.quantity
+              ? Number.parseInt(rowData.quantity, 10)
+              : 1,
           };
         })
-        .filter((r) => r.title && r.price);
+        .filter(
+          (r) =>
+            r.title &&
+            (r.price > 0 || (r.amount_options && r.amount_options.length > 0)),
+        );
 
       if (rows.length === 0) {
-        toast.error("No valid rows found in CSV");
+        toast.error("No valid listings found. Please verify column headers.");
         setBulkLoading(false);
         return;
       }
 
       const result = await bulkUploadListings(rows, bulkGame, bulkCategory);
       if (result.success) {
+        toast.success(`Successfully uploaded ${rows.length} listings!`);
         setShowBulkUpload(false);
         setCsvFile(null);
         setBulkGame("");
         setBulkCategory("");
+        fetchListings();
       }
     } catch (error) {
-      toast.error("Failed to parse CSV file");
+      console.error("CSV Bulk Upload error:", error);
+      toast.error("Failed to parse CSV file: " + error.message);
     }
     setBulkLoading(false);
   };
@@ -188,7 +399,11 @@ export default function ListingsManagement() {
           <button
             key={s}
             onClick={() => setFilter(s)}
-            className={`px-3 py-1.5 rounded-lg text-xs font-medium capitalize transition-all ${filter === s ? "bg-arcane-gold/20 text-arcane-gold" : "text-text-muted hover:text-white bg-[#1E1D24]"}`}
+            className={`px-3 py-1.5 rounded-lg text-xs font-medium capitalize transition-all ${
+              filter === s
+                ? "bg-arcane-gold/20 text-arcane-gold border border-arcane-gold/30"
+                : "text-text-muted hover:text-white bg-[#1E1D24]"
+            }`}
           >
             {s} (
             {s === "all"
@@ -216,119 +431,139 @@ export default function ListingsManagement() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
             >
-              <GlassCard className="p-4 hover:border-arcane-gold/30 transition-all group">
-                <div className="aspect-video rounded-xl bg-[#1E1D24] overflow-hidden mb-3 relative">
-                  {listing.images?.[0]?.url ? (
-                    <img
-                      src={listing.images[0].url}
-                      alt=""
-                      className="w-full h-full object-cover"
-                    />
-                  ) : (
-                    <div className="w-full h-full flex items-center justify-center text-3xl opacity-20">
-                      🎮
+              <GlassCard className="p-4 hover:border-arcane-gold/30 transition-all group relative flex flex-col justify-between h-full">
+                <div>
+                  <div className="aspect-video rounded-xl bg-[#1E1D24] overflow-hidden mb-3 relative border border-[#2A2932]">
+                    {listing.images?.[0]?.url ? (
+                      <img
+                        src={listing.images[0].url}
+                        alt=""
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center text-3xl opacity-20">
+                        🎮
+                      </div>
+                    )}
+                    <div className="absolute top-2 left-2 flex gap-1">
+                      <span
+                        className={`px-2 py-0.5 rounded-lg text-[10px] font-semibold tracking-wide uppercase ${
+                          statusColors[listing.status] ||
+                          "bg-white/10 text-white"
+                        }`}
+                      >
+                        {listing.status}
+                      </span>
                     </div>
-                  )}
-                  <div className="absolute top-2 left-2 flex gap-1">
-                    <span
-                      className={`px-2 py-0.5 rounded-lg text-xs font-medium ${statusColors[listing.status]}`}
-                    >
-                      {listing.status}
+                  </div>
+
+                  <div className="flex items-center gap-2 mb-2">
+                    {listing.game?.icon && (
+                      <img
+                        src={listing.game.icon}
+                        alt=""
+                        className="w-4 h-4 rounded object-contain"
+                      />
+                    )}
+                    <span className="text-xs text-text-muted">
+                      {listing.game?.name} •{" "}
+                      {listing.category?.name || "General"}
                     </span>
                   </div>
+
+                  <h3 className="text-sm font-medium text-white line-clamp-2 mb-2">
+                    {listing.title}
+                  </h3>
                 </div>
-                <div className="flex items-center gap-2 mb-2">
-                  {listing.game?.icon && (
-                    <img
-                      src={listing.game.icon}
-                      alt=""
-                      className="w-4 h-4 rounded"
-                    />
-                  )}
-                  <span className="text-xs text-text-muted">
-                    {listing.game?.name} • {listing.category?.name}
-                  </span>
-                </div>
-                <h3 className="text-sm font-medium text-white line-clamp-2 mb-2">
-                  {listing.title}
-                </h3>
-                <div className="flex items-center justify-between">
-                  <span className="text-arcane-gold font-bold">
-                    ${listing.price}
-                  </span>
-                  <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-all">
-                    {listing.status === "active" && (
-                      <>
+
+                <div className="pt-2">
+                  <div className="flex items-center justify-between border-t border-[#2A2932] pt-2">
+                    <div>
+                      <span className="text-arcane-gold font-bold text-base">
+                        ${listing.price || "0.00"}
+                      </span>
+                      {listing.quantity > 1 && (
+                        <span className="text-text-muted text-[11px] block">
+                          Stock: {listing.quantity}
+                        </span>
+                      )}
+                    </div>
+
+                    <div className="flex gap-1">
+                      {listing.status === "active" && (
+                        <>
+                          <button
+                            onClick={() =>
+                              updateListingStatus(listing.id, "hidden")
+                            }
+                            className="p-1.5 text-text-muted hover:text-white rounded-lg hover:bg-[#1E1D24]"
+                            title="Hide"
+                          >
+                            <HiOutlineEyeOff className="w-4 h-4" />
+                          </button>
+                          <button
+                            onClick={() =>
+                              updateListingStatus(listing.id, "sold")
+                            }
+                            className="p-1.5 text-text-muted hover:text-green-400 rounded-lg hover:bg-[#1E1D24]"
+                            title="Mark Sold"
+                          >
+                            <HiOutlineCheck className="w-4 h-4" />
+                          </button>
+                        </>
+                      )}
+                      {listing.status === "hidden" && (
                         <button
                           onClick={() =>
-                            updateListingStatus(listing.id, "hidden")
+                            updateListingStatus(listing.id, "active")
                           }
-                          className="p-1.5 text-text-muted hover:text-white rounded-lg hover:bg-[#1E1D24]"
-                          title="Hide"
+                          className="p-1.5 text-text-muted hover:text-arcane-gold rounded-lg hover:bg-[#1E1D24]"
+                          title="Publish"
                         >
-                          <HiOutlineEyeOff className="w-4 h-4" />
+                          <HiOutlineEye className="w-4 h-4" />
                         </button>
-                        <button
-                          onClick={() =>
-                            updateListingStatus(listing.id, "sold")
-                          }
-                          className="p-1.5 text-text-muted hover:text-green-400 rounded-lg hover:bg-[#1E1D24]"
-                          title="Mark Sold"
-                        >
-                          <HiOutlineCheck className="w-4 h-4" />
-                        </button>
-                      </>
-                    )}
-                    {listing.status === "hidden" && (
+                      )}
                       <button
-                        onClick={() =>
-                          updateListingStatus(listing.id, "active")
-                        }
-                        className="p-1.5 text-text-muted hover:text-arcane-gold rounded-lg hover:bg-[#1E1D24]"
-                        title="Publish"
+                        onClick={() => deleteListing(listing.id)}
+                        className="p-1.5 text-text-muted hover:text-red-400 rounded-lg hover:bg-[#1E1D24]"
+                        title="Delete"
                       >
-                        <HiOutlineEye className="w-4 h-4" />
+                        <HiOutlineTrash className="w-4 h-4" />
                       </button>
-                    )}
-                    <button
-                      onClick={() => deleteListing(listing.id)}
-                      className="p-1.5 text-text-muted hover:text-red-400 rounded-lg hover:bg-[#1E1D24]"
-                      title="Delete"
-                    >
-                      <HiOutlineTrash className="w-4 h-4" />
-                    </button>
-                    <button
-                      onClick={async () => {
-                        const result = await loadListing(listing.id, "edit");
-                        if (result.success)
-                          navigate(`/sell?edit=${listing.id}`);
-                      }}
-                      className="p-1.5 text-text-muted hover:text-blue-400 rounded-lg hover:bg-[#1E1D24]"
-                      title="Edit"
-                    >
-                      <HiOutlinePencil className="w-4 h-4" />
-                    </button>
-                    <button
-                      onClick={async () => {
-                        const result = await loadListing(
-                          listing.id,
-                          "duplicate",
-                        );
-                        if (result.success)
-                          navigate(`/sell?duplicate=${listing.id}`);
-                      }}
-                      className="p-1.5 text-text-muted hover:text-purple-400 rounded-lg hover:bg-[#1E1D24]"
-                      title="Duplicate"
-                    >
-                      <HiOutlineClipboardCopy className="w-4 h-4" />
-                    </button>
+                      <button
+                        onClick={async () => {
+                          const result = await loadListing(listing.id, "edit");
+                          if (result.success)
+                            navigate(`/sell?edit=${listing.id}`);
+                        }}
+                        className="p-1.5 text-text-muted hover:text-blue-400 rounded-lg hover:bg-[#1E1D24]"
+                        title="Edit"
+                      >
+                        <HiOutlinePencil className="w-4 h-4" />
+                      </button>
+                      <button
+                        onClick={async () => {
+                          const result = await loadListing(
+                            listing.id,
+                            "duplicate",
+                          );
+                          if (result.success)
+                            navigate(`/sell?duplicate=${listing.id}`);
+                        }}
+                        className="p-1.5 text-text-muted hover:text-purple-400 rounded-lg hover:bg-[#1E1D24]"
+                        title="Duplicate"
+                      >
+                        <HiOutlineClipboardCopy className="w-4 h-4" />
+                      </button>
+                    </div>
                   </div>
-                </div>
-                <div className="flex items-center gap-3 mt-2 text-xs text-text-muted">
-                  <span>👁 {listing.views}</span>
-                  <span>
-                    📅 {new Date(listing.created_at).toLocaleDateString()}
-                  </span>
+
+                  <div className="flex items-center justify-between mt-2 text-[11px] text-text-muted">
+                    <span>👁 {listing.views || 0} views</span>
+                    <span>
+                      {new Date(listing.created_at).toLocaleDateString()}
+                    </span>
+                  </div>
                 </div>
               </GlassCard>
             </motion.div>
@@ -339,12 +574,12 @@ export default function ListingsManagement() {
       {/* ============ BULK UPLOAD MODAL ============ */}
       <AnimatePresence>
         {showBulkUpload && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
             <motion.div
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.95 }}
-              className="glass-modal w-full max-w-lg p-6 max-h-[90vh] overflow-y-auto"
+              className="glass-modal w-full max-w-lg p-6 max-h-[90vh] overflow-y-auto bg-[#18171E] border border-[#2A2932] rounded-2xl"
             >
               <div className="flex items-center justify-between mb-4">
                 <h3 className="text-white font-semibold text-lg">
@@ -358,21 +593,25 @@ export default function ListingsManagement() {
                 </button>
               </div>
 
-              <div className="p-3 bg-arcane-gold/10 border border-arcane-gold/20 rounded-xl mb-4">
-                <p className="text-text-muted text-xs">
-                  <strong className="text-arcane-gold">CSV Format:</strong>{" "}
-                  Title, Description, Price, Rank, Level, Server
-                </p>
-                <a
-                  href="/template.csv"
-                  download
-                  className="text-arcane-gold text-xs hover:underline mt-1 inline-flex items-center gap-1"
+              <div className="p-3 bg-arcane-gold/10 border border-arcane-gold/20 rounded-xl mb-4 space-y-2">
+                <div className="flex items-start gap-2 text-xs text-text-muted">
+                  <HiOutlineInformationCircle className="w-4 h-4 text-arcane-gold shrink-0 mt-0.5" />
+                  <span>
+                    Upload standard listings, accounts, topups, boosting or
+                    items using our unified schema.
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  onClick={downloadSampleTemplate}
+                  className="text-arcane-gold text-xs font-medium hover:underline inline-flex items-center gap-1.5"
                 >
-                  <HiOutlineDownload className="w-3 h-3" /> Download Template
-                </a>
+                  <HiOutlineDownload className="w-3.5 h-3.5" /> Download Unified
+                  CSV Template
+                </button>
               </div>
 
-              <label className="block text-sm text-text-secondary mb-2">
+              <label className="block text-sm text-text-secondary mb-1.5">
                 Select Game *
               </label>
               <select
@@ -381,7 +620,7 @@ export default function ListingsManagement() {
                   setBulkGame(e.target.value);
                   setBulkCategory("");
                 }}
-                className="w-full bg-[#1E1D24] border border-[#2A2932] rounded-xl py-3 px-4 text-white text-sm outline-none mb-4"
+                className="w-full bg-[#1E1D24] border border-[#2A2932] rounded-xl py-2.5 px-3.5 text-white text-sm outline-none mb-4"
               >
                 <option value="">Choose a game...</option>
                 {allGames?.map((g) => (
@@ -393,35 +632,35 @@ export default function ListingsManagement() {
 
               {bulkCategories.length > 0 && (
                 <>
-                  <label className="block text-sm text-text-secondary mb-2">
+                  <label className="block text-sm text-text-secondary mb-1.5">
                     Select Category (Optional)
                   </label>
                   <select
                     value={bulkCategory}
                     onChange={(e) => setBulkCategory(e.target.value)}
-                    className="w-full bg-[#1E1D24] border border-[#2A2932] rounded-xl py-3 px-4 text-white text-sm outline-none mb-4"
+                    className="w-full bg-[#1E1D24] border border-[#2A2932] rounded-xl py-2.5 px-3.5 text-white text-sm outline-none mb-4"
                   >
-                    <option value="">All categories</option>
+                    <option value="">All / Auto-assign</option>
                     {bulkCategories.map((c) => (
                       <option key={c.id} value={c.id}>
-                        {c.name}
+                        {c.name} ({c.type})
                       </option>
                     ))}
                   </select>
                 </>
               )}
 
-              <label className="block text-sm text-text-secondary mb-2">
+              <label className="block text-sm text-text-secondary mb-1.5">
                 CSV File *
               </label>
               <input
                 type="file"
                 accept=".csv"
                 onChange={(e) => setCsvFile(e.target.files?.[0])}
-                className="w-full text-white text-sm mb-4 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-sm file:bg-arcane-gold file:text-[#141319] file:cursor-pointer"
+                className="w-full text-white text-sm mb-5 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-sm file:bg-arcane-gold file:text-[#141319] file:font-semibold file:cursor-pointer"
               />
 
-              <div className="flex gap-2">
+              <div className="flex gap-3">
                 <Button
                   onClick={handleBulkUpload}
                   variant="gold"

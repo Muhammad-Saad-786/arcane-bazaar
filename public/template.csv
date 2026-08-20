@@ -1,3 +1,5 @@
-Title,Description,Price,Rank,Level,Server
-"Fortnite Account - 100+ Skins","Great account with rare skins including Black Knight",99.99,Diamond,100,PC
-"Valorant Account - Radiant Rank","Radiant rank with premium skins",149.99,Radiant,200,NA
+title,description,price,delivery_type,delivery_time,rank,level,server,hero_count,skin_count,amount_options,delivery_method,region,platform,service_type,target_rank,item_name,quantity
+"Radiant Peak Account | 45 Skins | Full Access","Original owner account with prime skins and email change available.",149.99,instant,15,Radiant,120,NA,28,45,,,,,login,NA,PC,,,
+"Mobile Legends 1000+ Diamonds Instant Top-up","Instant direct ID recharge without login required.",18.50,auto,5,,,,,,,"[{""amount"":""500 Diamonds"",""price"":9.50},{""amount"":""1000 Diamonds"",""price"":18.50}]",redeem_code,Global,Mobile,,,
+"Valorant Competitive Rank Boost (Gold to Diamond)","Professional duo or solo rank boost with 80%+ winrate guarantee.",45.00,manual,120,,,,,,,,NA,PC,rank_boost,Diamond I,,
+"Path of Exile 50x Divine Orbs [Standard League]","Fast face-to-face in-game trade within 10 minutes.",32.00,manual,10,,,,,,,direct_trade,Global,PC,,,Divine Orb,50
