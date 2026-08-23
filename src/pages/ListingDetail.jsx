@@ -668,22 +668,34 @@ export default function ListingDetail() {
               <div className="flex items-center justify-between pb-4 mb-4 border-b border-[#2A2932]">
                 <div className="flex items-center gap-3">
                   <div className="relative w-12 h-12 rounded-full bg-arcane-gold border border-[#2A2932] flex items-center justify-center text-lg font-bold text-arcane-gold overflow-hidden">
-                    {seller?.avatar_url ? (
-                      <img
-                        src={seller.avatar_url}
-                        alt=""
-                        className="w-full h-full object-cover"
-                      />
-                    ) : (
-                      seller?.username?.charAt(0).toUpperCase() || "S"
-                    )}
+                    <Link
+                      to={`/seller/${listing.seller?.username}`}
+                      onClick={(e) => e.stopPropagation()}
+                      className="flex items-center gap-1.5 min-w-0 group/seller"
+                    >
+                      {seller?.avatar_url ? (
+                        <img
+                          src={seller.avatar_url}
+                          alt=""
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        seller?.username?.charAt(0).toUpperCase() || "S"
+                      )}
+                    </Link>
                   </div>
 
                   <div>
                     <div className="flex items-center gap-1.5">
-                      <h3 className="text-sm font-bold text-white">
-                        {seller?.username || "Seller"}
-                      </h3>
+                      <Link
+                        to={`/seller/${listing.seller?.username}`}
+                        onClick={(e) => e.stopPropagation()}
+                        className="flex items-center gap-1.5 min-w-0 group/seller"
+                      >
+                        <h3 className="text-sm font-bold text-white">
+                          {seller?.username || "Seller"}
+                        </h3>
+                      </Link>
                       {seller?.verified_seller && (
                         <HiOutlineShieldCheck
                           className="w-4 h-4 text-blue-400"

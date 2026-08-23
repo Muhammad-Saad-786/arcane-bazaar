@@ -33,6 +33,8 @@ const Marketplace = lazy(() => import("./pages/Marketplace"));
 const GameMarketplace = lazy(() => import("./pages/games/GameMarketplace"));
 const SellAccount = lazy(() => import("./pages/sell/SellAccount"));
 const ListingDetail = lazy(() => import("./pages/ListingDetail"));
+const PublicSellerProfile = lazy(() => import("./pages/PublicSellerProfile"));
+
 // Dashboard - DIRECT imports (no lazy loading for instant navigation)
 import DashboardLayout from "./components/dashboard/DashboardLayout";
 import DashboardOverview from "./pages/dashboard/DashboardOverview";
@@ -84,7 +86,7 @@ function App() {
             <Route path="/auth/callback" element={<AuthCallback />} />
             <Route path="/become-seller" element={<BecomeSeller />} />
             <Route path="/listing/:id" element={<ListingDetail />} />
-
+            <Route path="/seller/:username" element={<PublicSellerProfile />} />
             <Route
               path="/verify/before-selling"
               element={
@@ -170,7 +172,6 @@ function App() {
             <Route path="boosting" element={<Boosting />} />
             <Route path="messages" element={<Messages />} />
             <Route path="notifications" element={<Notifications />} />
-            <Route path="profile" element={<ProfileSettings />} />
             <Route path="settings" element={<ProfileSettings />} />
             <Route path="wallet" element={<Wallet />} />
             <Route path="loyalty" element={<Loyalty />} />

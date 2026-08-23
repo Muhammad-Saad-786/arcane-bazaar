@@ -216,27 +216,40 @@ export default function ListingCard({ listing }) {
             </div>
           </div>
 
-          {/* Eldorado-Style Seller & Reputation Footer */}
+          {/* Style Seller & Reputation Footer */}
           <div className="pt-2.5 border-t border-[#2A2932]/70">
             <div className="flex items-center justify-between text-[11px] text-text-muted mb-2">
               {/* Seller Avatar + Online badge */}
               <div className="flex items-center gap-1.5 min-w-0">
                 <div className="relative w-4 h-4 rounded-full bg-arcane-gold flex items-center justify-center overflow-hidden shrink-0">
-                  {listing.seller?.avatar_url ? (
-                    <img
-                      src={listing.seller.avatar_url}
-                      alt=""
-                      className="w-full h-full object-cover"
-                    />
-                  ) : (
-                    <span className="text-[8px] font-bold text-arcane-gold">
-                      {listing.seller?.username?.charAt(0).toUpperCase() || "S"}
-                    </span>
-                  )}
+                  <Link
+                    to={`/seller/${listing.seller?.username}`}
+                    onClick={(e) => e.stopPropagation()}
+                    className="flex items-center gap-1.5 min-w-0 group/seller"
+                  >
+                    {listing.seller?.avatar_url ? (
+                      <img
+                        src={listing.seller.avatar_url}
+                        alt=""
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <span className="text-[8px] font-bold text-arcane-gold">
+                        {listing.seller?.username?.charAt(0).toUpperCase() ||
+                          "S"}
+                      </span>
+                    )}
+                  </Link>
                   <span className="absolute bottom-0 right-0 w-1 h-1 rounded-full bg-emerald-500" />
                 </div>
-                <span className="truncate hover:text-white transition-colors font-medium text-gray-300 text-[11px]">
-                  {listing.seller?.username || "Verified Seller"}
+                <span className="truncate text-white transition-colors font-medium  text-[11px]">
+                  <Link
+                    to={`/seller/${listing.seller?.username}`}
+                    onClick={(e) => e.stopPropagation()}
+                    className="flex items-center gap-1.5 min-w-0 group/seller"
+                  >
+                    {listing.seller?.username || "Verified Seller"}
+                  </Link>
                 </span>
                 {listing.seller?.verified_seller && (
                   <HiOutlineShieldCheck

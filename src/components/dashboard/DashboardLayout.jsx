@@ -57,7 +57,6 @@ const navItems = [
     label: "Feedback",
     path: "/dashboard/feedback",
   },
-  { icon: HiOutlineUser, label: "Profile", path: "/dashboard/profile" },
   { icon: HiOutlineCog, label: "Settings", path: "/dashboard/settings" },
   { icon: HiOutlineSupport, label: "Support", path: "/dashboard/support" },
 ];

@@ -78,10 +78,10 @@ export default function SupportAgent() {
         onClick={toggleChat}
         whileHover={{ scale: 1.1 }}
         whileTap={{ scale: 0.9 }}
-        className="fixed bottom-5 right-5 z-[999] w-16 h-16 flex items-center justify-center"
+        className="fixed bottom-5 right-5 z-[999] w-10 h-10 flex items-center justify-center"
       >
         {isOpen ? (
-          <div className="w-14 h-14 rounded-full bg-arcane-elevated border border-arcane-border flex items-center justify-center shadow-2xl">
+          <div className="w-10 h-10 rounded-full bg-arcane-elevated border border-arcane-border flex items-center justify-center shadow-2xl">
             <HiOutlineX className="w-6 h-6 text-white" />
           </div>
         ) : (
@@ -216,7 +216,7 @@ export default function SupportAgent() {
                               onClick={() => setView("chat")}
                               className="w-full flex items-center gap-3 p-3 rounded-xl bg-white/5 hover:bg-white/10 transition-all text-left"
                             >
-                              <div className="w-8 h-8 rounded-full bg-gradient-to-br from-arcane-purple to-arcane-gold flex items-center justify-center">
+                              <div className="w-8 h-8 rounded-full flex items-center justify-center">
                                 <div className="flex justify-center mb-3">
                                   <img
                                     src="/arcane-agent.png"
