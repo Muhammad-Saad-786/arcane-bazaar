@@ -39,6 +39,7 @@ export default function ListingDetail() {
   const [listing, setListing] = useState(null);
   const [loading, setLoading] = useState(true);
   const [selectedImage, setSelectedImage] = useState(0);
+  const [selectedPackageIndex, setSelectedPackageIndex] = useState(0);
   const [relatedListings, setRelatedListings] = useState([]);
   const [reviewTab, setReviewTab] = useState("all"); // 'all' | 'positive' | 'negative'
   const [sellerReviews, setSellerReviews] = useState([]);
@@ -82,10 +83,10 @@ export default function ListingDetail() {
         .eq("id", id)
         .then();
 
-      // Fetch related listings from the same category / game
+      // Fetch related listings
       fetchRelatedListings(data.game_id, data.category_id, data.id);
 
-      // Fetch dynamic seller feedback
+      // Fetch dynamic seller reviews
       if (data.seller?.id || data.seller_id) {
         fetchSellerReviews(data.seller?.id || data.seller_id);
       }
@@ -129,6 +130,7 @@ export default function ListingDetail() {
   const fetchSellerReviews = async (sellerId) => {
     setReviewsLoading(true);
     try {
+      // Use 'reviewer_id' matching the database schema
       const { data, error } = await supabase
         .from("reviews")
         .select(
@@ -137,7 +139,7 @@ export default function ListingDetail() {
             rating,
             comment,
             created_at,
-            buyer:profiles!buyer_id(id, username, avatar_url)
+            reviewer:profiles!reviewer_id(id, username, avatar_url)
           `,
         )
         .eq("seller_id", sellerId)
@@ -183,7 +185,21 @@ export default function ListingDetail() {
   const images = listing.images || [];
   const categoryType = listing.category?.type || "account";
 
-  // Real-time calculations from live reviews
+  // Dynamic price calculation depending on whether a multi-package is selected
+  const hasPackages =
+    (categoryType === "topup" || categoryType === "currency") &&
+    Array.isArray(listing.amount_options) &&
+    listing.amount_options.length > 0;
+
+  const currentPackage = hasPackages
+    ? listing.amount_options[selectedPackageIndex] || listing.amount_options[0]
+    : null;
+
+  const activeDisplayPrice = currentPackage
+    ? currentPackage.price
+    : listing.price;
+
+  // Real-time review metrics
   const totalReviewsCount = sellerReviews.length;
   const positiveReviewsCount = sellerReviews.filter(
     (r) => r.rating >= 4,
@@ -217,7 +233,7 @@ export default function ListingDetail() {
       />
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6">
-        {/* Breadcrumb Navigation */}
+        {/* Breadcrumbs */}
         <div className="flex items-center gap-2 text-xs text-text-muted mb-6 overflow-x-auto whitespace-nowrap">
           <Link to="/" className="hover:text-white transition-colors">
             Home
@@ -505,19 +521,19 @@ export default function ListingDetail() {
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2">
                           <div className="w-6 h-6 rounded-full bg-[#1E1D24] flex items-center justify-center text-[10px] font-bold text-arcane-gold overflow-hidden">
-                            {rev.buyer?.avatar_url ? (
+                            {rev.reviewer?.avatar_url ? (
                               <img
-                                src={rev.buyer.avatar_url}
+                                src={rev.reviewer.avatar_url}
                                 alt=""
                                 className="w-full h-full object-cover"
                               />
                             ) : (
-                              rev.buyer?.username?.charAt(0).toUpperCase() ||
+                              rev.reviewer?.username?.charAt(0).toUpperCase() ||
                               "B"
                             )}
                           </div>
                           <span className="text-xs font-medium text-white">
-                            {rev.buyer?.username || "Verified Buyer"}
+                            {rev.reviewer?.username || "Verified Buyer"}
                           </span>
                           <span className="px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-400 text-[10px] font-semibold flex items-center gap-0.5">
                             <HiOutlineCheck className="w-3 h-3" /> Verified
@@ -577,6 +593,68 @@ export default function ListingDetail() {
                 {listing.title}
               </h1>
 
+              {/* Multi-Package Selection Cards */}
+              {hasPackages && (
+                <div className="mb-5 space-y-2">
+                  <label className="block text-xs font-semibold text-text-muted uppercase tracking-wider">
+                    Select Denomination Package
+                  </label>
+                  <div className="grid grid-cols-1 gap-2 max-h-60 overflow-y-auto pr-1">
+                    {listing.amount_options.map((pkg, idx) => {
+                      const isSelected = selectedPackageIndex === idx;
+                      return (
+                        <button
+                          key={pkg.id || idx}
+                          type="button"
+                          onClick={() => setSelectedPackageIndex(idx)}
+                          className={`w-full p-3 rounded-xl border text-left transition-all flex items-center justify-between ${
+                            isSelected
+                              ? "bg-arcane-gold/15 border-arcane-gold shadow-md shadow-arcane-gold/10"
+                              : "bg-[#141319] border-[#2A2932] hover:border-arcane-gold/40"
+                          }`}
+                        >
+                          <div className="min-w-0">
+                            <div className="flex items-center gap-2">
+                              <span className="text-xs font-bold text-white truncate">
+                                💎 {pkg.amount}
+                              </span>
+                              {pkg.discount_percent > 0 && (
+                                <span className="px-1.5 py-0.5 rounded bg-red-500/20 text-red-400 text-[10px] font-bold">
+                                  -{pkg.discount_percent}%
+                                </span>
+                              )}
+                              {pkg.is_popular && (
+                                <span className="px-1.5 py-0.5 rounded bg-arcane-gold/20 text-arcane-gold text-[10px] font-bold">
+                                  Popular
+                                </span>
+                              )}
+                            </div>
+                            {pkg.bonus && (
+                              <span className="text-[10px] text-emerald-400 block mt-0.5">
+                                🎁 {pkg.bonus}
+                              </span>
+                            )}
+                          </div>
+
+                          <div className="text-right shrink-0">
+                            {pkg.original_price &&
+                              Number(pkg.original_price) >
+                                Number(pkg.price) && (
+                                <span className="text-[11px] text-text-muted line-through block leading-none">
+                                  ${Number(pkg.original_price).toFixed(2)}
+                                </span>
+                              )}
+                            <span className="text-sm font-extrabold text-arcane-gold">
+                              ${Number(pkg.price).toFixed(2)}
+                            </span>
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
               {/* Price Display */}
               <div className="p-4 bg-[#141319] border border-[#2A2932] rounded-xl mb-5 flex items-end justify-between">
                 <div>
@@ -584,7 +662,7 @@ export default function ListingDetail() {
                     Total Price
                   </span>
                   <span className="text-2xl sm:text-3xl font-extrabold text-arcane-gold tracking-tight">
-                    {isSold ? "SOLD" : formatPrice(listing.price)}
+                    {isSold ? "SOLD" : formatPrice(activeDisplayPrice)}
                   </span>
                 </div>
                 <div className="text-right text-xs text-text-muted space-y-1">
@@ -692,7 +770,7 @@ export default function ListingDetail() {
                         onClick={(e) => e.stopPropagation()}
                         className="flex items-center gap-1.5 min-w-0 group/seller"
                       >
-                        <h3 className="text-sm font-bold text-white">
+                        <h3 className="text-sm font-bold text-white hover:text-arcane-gold transition-colors">
                           {seller?.username || "Seller"}
                         </h3>
                       </Link>

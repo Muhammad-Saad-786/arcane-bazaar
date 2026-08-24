@@ -22,8 +22,8 @@ const createEmptyForm = () => ({
   skin_count: "",
 
   // Topup / Currency specific
-  amount_options: [], // [{ id: string, amount: string, price: string }]
-  delivery_method: "login", // login | gifting | redeem_code (for topups) or trade/mail (for items)
+  amount_options: [], // [{ id, amount, original_price, price, discount_percent, bonus, is_popular }]
+  delivery_method: "login", // login | gifting | redeem_code
   region: "",
   platform: "",
 
@@ -77,15 +77,23 @@ const getListingPayload = (formData, categoryType) => {
 
   if (categoryType === "topup" || categoryType === "currency") {
     const formattedOptions = (formData.amount_options || []).map((opt) => ({
-      amount: String(opt.amount).trim(),
+      id: opt.id || crypto.randomUUID(),
+      amount: String(opt.amount || "").trim(),
+      original_price: opt.original_price
+        ? Number.parseFloat(opt.original_price)
+        : null,
       price: Number.parseFloat(opt.price) || 0,
+      discount_percent: opt.discount_percent
+        ? Number.parseInt(opt.discount_percent, 10)
+        : null,
+      bonus: opt.bonus?.trim() || null,
+      is_popular: Boolean(opt.is_popular),
     }));
 
-    // Auto set base price from the first tier option if not filled
+    // Auto set base price from lowest price package
+    const prices = formattedOptions.map((o) => o.price).filter((p) => p > 0);
     const effectivePrice =
-      basePayload.price > 0
-        ? basePayload.price
-        : formattedOptions[0]?.price || 0;
+      prices.length > 0 ? Math.min(...prices) : basePayload.price || 0;
 
     return {
       ...basePayload,
@@ -110,7 +118,7 @@ const getListingPayload = (formData, categoryType) => {
     return {
       ...basePayload,
       service_type: formData.service_type || "rank_boost",
-      rank: formData.current_rank?.trim() || null, // store current rank in rank column
+      rank: formData.current_rank?.trim() || null,
       target_rank: formData.target_rank?.trim() || null,
       region: formData.region?.trim() || null,
       server: formData.server?.trim() || null,
@@ -146,7 +154,6 @@ const getListingPayload = (formData, categoryType) => {
     };
   }
 
-  // Fallback for general listings
   return {
     ...basePayload,
     rank: formData.rank?.trim() || null,
@@ -203,14 +210,22 @@ const useCreateListingStore = create((set, get) => ({
       },
     })),
 
-  // Amount options helper functions for Topup/Currency
+  // Top-Up Package Helpers
   addAmountOption: () =>
     set((state) => ({
       formData: {
         ...state.formData,
         amount_options: [
           ...state.formData.amount_options,
-          { id: crypto.randomUUID(), amount: "", price: "" },
+          {
+            id: crypto.randomUUID(),
+            amount: "",
+            original_price: "",
+            price: "",
+            discount_percent: "",
+            bonus: "",
+            is_popular: false,
+          },
         ],
       },
     })),
@@ -219,9 +234,30 @@ const useCreateListingStore = create((set, get) => ({
     set((state) => ({
       formData: {
         ...state.formData,
-        amount_options: state.formData.amount_options.map((option) =>
-          option.id === id ? { ...option, [field]: value } : option,
-        ),
+        amount_options: state.formData.amount_options.map((opt) => {
+          if (opt.id !== id) return opt;
+
+          const updated = { ...opt, [field]: value };
+
+          // Automatically compute discount percentage if original_price & price exist
+          if (field === "price" || field === "original_price") {
+            const orig = Number.parseFloat(
+              field === "original_price" ? value : updated.original_price,
+            );
+            const pr = Number.parseFloat(
+              field === "price" ? value : updated.price,
+            );
+            if (orig > 0 && pr > 0 && orig > pr) {
+              updated.discount_percent = Math.round(
+                ((orig - pr) / orig) * 100,
+              ).toString();
+            } else if (pr >= orig) {
+              updated.discount_percent = "";
+            }
+          }
+
+          return updated;
+        }),
       },
     })),
 
@@ -230,14 +266,13 @@ const useCreateListingStore = create((set, get) => ({
       formData: {
         ...state.formData,
         amount_options: state.formData.amount_options.filter(
-          (option) => option.id !== id,
+          (opt) => opt.id !== id,
         ),
       },
     })),
 
   addImages: (files) => {
     const acceptedFiles = Array.from(files || []);
-
     set((state) => {
       const availableSlots = Math.max(0, 10 - state.formData.images.length);
       const filesToAdd = acceptedFiles.slice(0, availableSlots);
@@ -265,11 +300,9 @@ const useCreateListingStore = create((set, get) => ({
   removeImage: (id) =>
     set((state) => {
       const image = state.formData.images.find((item) => item.id === id);
-
       if (image?.file && image.preview) {
         URL.revokeObjectURL(image.preview);
       }
-
       return {
         formData: {
           ...state.formData,
@@ -341,14 +374,13 @@ const useCreateListingStore = create((set, get) => ({
         return false;
       }
 
-      // Delivery time validation
       const deliveryTime = Number.parseInt(formData.delivery_time, 10);
       if (!Number.isFinite(deliveryTime) || deliveryTime <= 0) {
         toast.error("Enter a valid delivery time in minutes");
         return false;
       }
 
-      // Validation for Accounts
+      // Accounts Validation
       if (categoryType === "account") {
         const price = Number.parseFloat(formData.price);
         if (!Number.isFinite(price) || price <= 0) {
@@ -358,16 +390,16 @@ const useCreateListingStore = create((set, get) => ({
 
         if (formData.images.length < 5) {
           toast.error(
-            "Account listings require at least 5 screenshots for buyer verification",
+            "Account listings require at least 5 screenshots for verification",
           );
           return false;
         }
       }
 
-      // Validation for Topup / Currency
+      // Topup / Currency Validation
       if (categoryType === "topup" || categoryType === "currency") {
         if (!formData.amount_options || formData.amount_options.length === 0) {
-          toast.error("Please add at least one amount & price option");
+          toast.error("Please add at least one top-up package");
           return false;
         }
 
@@ -379,7 +411,7 @@ const useCreateListingStore = create((set, get) => ({
         );
         if (hasInvalidOptions) {
           toast.error(
-            "Please complete all amount options with valid values and prices",
+            "Please provide package amount names and valid selling prices",
           );
           return false;
         }
@@ -390,7 +422,7 @@ const useCreateListingStore = create((set, get) => ({
         }
       }
 
-      // Validation for Boosting
+      // Boosting Validation
       if (categoryType === "boosting") {
         const price = Number.parseFloat(formData.price);
         if (!Number.isFinite(price) || price <= 0) {
@@ -409,7 +441,7 @@ const useCreateListingStore = create((set, get) => ({
         }
       }
 
-      // Validation for Items
+      // Items Validation
       if (categoryType === "items") {
         if (!formData.item_name?.trim()) {
           toast.error("Item name is required");
@@ -438,89 +470,52 @@ const useCreateListingStore = create((set, get) => ({
     return true;
   },
 
-  prepareCreate: () => {
-    const currentImages = get().formData.images;
-
-    currentImages.forEach((image) => {
-      if (image.file && image.preview) {
-        URL.revokeObjectURL(image.preview);
-      }
-    });
-
-    set({
-      editorMode: "create",
-      editingListingId: null,
-      originalImageIds: [],
-      currentStep: 1,
-      categories: [],
-      formData: createEmptyForm(),
-      loading: false,
-      loadingListing: false,
-    });
-  },
-
   loadListing: async (listingId, mode = "edit") => {
     const user = useAuthStore.getState().user;
-
-    if (!user || !listingId) {
-      return { success: false, error: "Missing listing information" };
-    }
+    if (!user || !listingId)
+      return { success: false, error: "Missing listing info" };
 
     set({ loadingListing: true });
-
     try {
       const { data: listing, error } = await supabase
         .from("listings")
-        .select(
-          `
-            *,
-            images:listing_images(
-              id,
-              url,
-              is_cover,
-              sort_order
-            )
-          `,
-        )
+        .select(`*, images:listing_images(id, url, is_cover, sort_order)`)
         .eq("id", listingId)
         .eq("seller_id", user.id)
         .single();
 
-      if (error || !listing) {
-        throw new Error("Listing not found or you do not own it");
-      }
+      if (error || !listing) throw new Error("Listing not found");
 
       await get().fetchCategories(listing.game_id);
 
       const existingImages = [...(listing.images || [])]
-        .sort((a, b) => {
-          if (a.is_cover && !b.is_cover) return -1;
-          if (!a.is_cover && b.is_cover) return 1;
-          return (a.sort_order || 0) - (b.sort_order || 0);
-        })
-        .map((image) => ({
-          id: image.id,
-          databaseId: image.id,
-          preview: image.url,
-          url: image.url,
+        .sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0))
+        .map((img) => ({
+          id: img.id,
+          databaseId: img.id,
+          preview: img.url,
+          url: img.url,
           isExisting: true,
-          is_cover: image.is_cover,
-          sort_order: image.sort_order,
+          is_cover: img.is_cover,
+          sort_order: img.sort_order,
         }));
 
-      // Normalize amount options
       const normalizedAmountOptions = Array.isArray(listing.amount_options)
         ? listing.amount_options.map((opt) => ({
-            id: crypto.randomUUID(),
+            id: opt.id || crypto.randomUUID(),
             amount: String(opt.amount || ""),
-            price: String(opt.price || ""),
+            original_price: opt.original_price?.toString() || "",
+            price: opt.price?.toString() || "",
+            discount_percent: opt.discount_percent?.toString() || "",
+            bonus: opt.bonus || "",
+            is_popular: Boolean(opt.is_popular),
           }))
         : [];
 
       set({
         editorMode: mode === "duplicate" ? "duplicate" : "edit",
         editingListingId: listing.id,
-        originalImageIds: existingImages.map((image) => image.databaseId),
+        originalImageIds: existingImages.map((img) => img.databaseId),
         currentStep: 3,
         formData: {
           ...createEmptyForm(),
@@ -528,7 +523,7 @@ const useCreateListingStore = create((set, get) => ({
           category_id: listing.category_id || "",
           title:
             mode === "duplicate"
-              ? `${listing.title || "Listing"} (Copy)`
+              ? `${listing.title} (Copy)`
               : listing.title || "",
           description: listing.description || "",
           price: listing.price?.toString() || "",
@@ -537,25 +532,21 @@ const useCreateListingStore = create((set, get) => ({
           instant_delivery: Boolean(listing.instant_delivery),
           images: existingImages,
 
-          // Accounts
           rank: listing.rank || "",
           level: listing.level?.toString() || "",
           server: listing.server || "",
           hero_count: listing.hero_count?.toString() || "",
           skin_count: listing.skin_count?.toString() || "",
 
-          // Topup / Currency
           amount_options: normalizedAmountOptions,
           delivery_method: listing.delivery_method || "login",
           region: listing.region || "",
           platform: listing.platform || "",
 
-          // Boosting
           service_type: listing.service_type || "rank_boost",
           current_rank: listing.rank || "",
           target_rank: listing.target_rank || "",
 
-          // Items
           item_name: listing.item_name || "",
           quantity: listing.quantity?.toString() || "1",
         },
@@ -563,22 +554,22 @@ const useCreateListingStore = create((set, get) => ({
       });
 
       return { success: true };
-    } catch (error) {
-      console.error("Load listing error:", error);
-      toast.error(error.message || "Could not load listing");
+    } catch (err) {
+      console.error("Load listing error:", err);
       set({ loadingListing: false });
-      return { success: false, error: error.message };
+      return { success: false, error: err.message };
     }
   },
 
   uploadNewImages: async (userId) => {
-    const newImages = get().formData.images.filter((image) => image.file);
+    const newImages = get().formData.images.filter((img) => img.file);
     const uploadedImages = [];
 
     for (const image of newImages) {
-      const rawExtension = image.file.name.split(".").pop() || "jpg";
-      const extension = rawExtension.toLowerCase().replace(/[^a-z0-9]/g, "");
-      const filePath = `${userId}/${Date.now()}-${crypto.randomUUID()}.${extension}`;
+      const ext = (image.file.name.split(".").pop() || "jpg")
+        .toLowerCase()
+        .replace(/[^a-z0-9]/g, "");
+      const filePath = `${userId}/${Date.now()}-${crypto.randomUUID()}.${ext}`;
 
       const { data: uploadData, error: uploadError } = await supabase.storage
         .from("account-images")
@@ -588,18 +579,14 @@ const useCreateListingStore = create((set, get) => ({
           contentType: image.file.type,
         });
 
-      if (uploadError) {
+      if (uploadError)
         throw new Error(`Image upload failed: ${uploadError.message}`);
-      }
 
       const {
         data: { publicUrl },
       } = supabase.storage.from("account-images").getPublicUrl(uploadData.path);
 
-      uploadedImages.push({
-        url: publicUrl,
-        storagePath: uploadData.path,
-      });
+      uploadedImages.push({ url: publicUrl, storagePath: uploadData.path });
     }
 
     return uploadedImages;
@@ -626,14 +613,11 @@ const useCreateListingStore = create((set, get) => ({
     const existingUrls =
       editorMode === "duplicate"
         ? formData.images
-            .filter((image) => image.isExisting && image.url)
-            .map((image) => image.url)
+            .filter((img) => img.isExisting && img.url)
+            .map((img) => img.url)
         : [];
 
-    const allUrls = [
-      ...existingUrls,
-      ...uploadedImages.map((image) => image.url),
-    ];
+    const allUrls = [...existingUrls, ...uploadedImages.map((img) => img.url)];
 
     if (allUrls.length > 0) {
       const imageRecords = allUrls.map((url, index) => ({
@@ -642,12 +626,7 @@ const useCreateListingStore = create((set, get) => ({
         is_cover: index === 0,
         sort_order: index,
       }));
-
-      const { error: imageError } = await supabase
-        .from("listing_images")
-        .insert(imageRecords);
-
-      if (imageError) throw imageError;
+      await supabase.from("listing_images").insert(imageRecords);
     }
 
     return listing;
@@ -655,11 +634,6 @@ const useCreateListingStore = create((set, get) => ({
 
   updateListing: async (user, uploadedImages) => {
     const { formData, editingListingId, originalImageIds, categories } = get();
-
-    if (!editingListingId) {
-      throw new Error("No listing selected for editing");
-    }
-
     const category = categories.find((c) => c.id === formData.category_id);
     const payload = getListingPayload(formData, category?.type);
 
@@ -676,56 +650,39 @@ const useCreateListingStore = create((set, get) => ({
 
     if (error) throw error;
 
-    const retainedExistingImages = formData.images.filter(
-      (image) => image.isExisting && image.databaseId,
+    const retainedImages = formData.images.filter(
+      (img) => img.isExisting && img.databaseId,
     );
-
-    const retainedIds = retainedExistingImages.map((image) => image.databaseId);
-
+    const retainedIds = retainedImages.map((img) => img.databaseId);
     const removedIds = originalImageIds.filter(
-      (imageId) => !retainedIds.includes(imageId),
+      (id) => !retainedIds.includes(id),
     );
 
     if (removedIds.length > 0) {
-      const { error: deleteError } = await supabase
+      await supabase
         .from("listing_images")
         .delete()
         .eq("listing_id", editingListingId)
         .in("id", removedIds);
-
-      if (deleteError) throw deleteError;
     }
 
-    for (let index = 0; index < retainedExistingImages.length; index += 1) {
-      const image = retainedExistingImages[index];
-
-      const { error: updateImageError } = await supabase
+    for (let i = 0; i < retainedImages.length; i++) {
+      await supabase
         .from("listing_images")
-        .update({
-          is_cover: index === 0,
-          sort_order: index,
-        })
-        .eq("id", image.databaseId)
+        .update({ is_cover: i === 0, sort_order: i })
+        .eq("id", retainedImages[i].databaseId)
         .eq("listing_id", editingListingId);
-
-      if (updateImageError) throw updateImageError;
     }
 
     if (uploadedImages.length > 0) {
-      const startingIndex = retainedExistingImages.length;
-
-      const newImageRecords = uploadedImages.map((image, index) => ({
+      const startingIndex = retainedImages.length;
+      const newImages = uploadedImages.map((img, idx) => ({
         listing_id: editingListingId,
-        url: image.url,
-        is_cover: startingIndex === 0 && index === 0,
-        sort_order: startingIndex + index,
+        url: img.url,
+        is_cover: startingIndex === 0 && idx === 0,
+        sort_order: startingIndex + idx,
       }));
-
-      const { error: insertImageError } = await supabase
-        .from("listing_images")
-        .insert(newImageRecords);
-
-      if (insertImageError) throw insertImageError;
+      await supabase.from("listing_images").insert(newImages);
     }
 
     return listing;
@@ -739,58 +696,37 @@ const useCreateListingStore = create((set, get) => ({
       toast.error("Please sign in again");
       return { success: false };
     }
-    if (!formData.game_id) {
-      toast.error("Please select a game");
-      return { success: false };
-    }
-    if (!formData.category_id) {
-      toast.error("Please select a category");
-      return { success: false };
-    }
 
     set({ loading: true });
-
     try {
       const uploadedImages = await get().uploadNewImages(user.id);
-
       const listing =
         editorMode === "edit"
           ? await get().updateListing(user, uploadedImages)
           : await get().createListing(user, uploadedImages);
 
-      if (editorMode === "edit") {
-        toast.success("Listing updated successfully");
-      } else if (editorMode === "duplicate") {
-        toast.success("Listing duplicated successfully");
-      } else {
-        toast.success("Listing created successfully");
-      }
+      toast.success(
+        editorMode === "edit"
+          ? "Listing updated successfully"
+          : editorMode === "duplicate"
+            ? "Listing duplicated successfully"
+            : "Listing created successfully",
+      );
 
       set({ loading: false });
-
-      return {
-        success: true,
-        id: listing.id,
-      };
-    } catch (error) {
-      console.error("Listing submission error:", error);
-      toast.error(error.message || "Could not save listing");
+      return { success: true, id: listing.id };
+    } catch (err) {
+      console.error("Listing submission error:", err);
+      toast.error(err.message || "Could not save listing");
       set({ loading: false });
-
-      return {
-        success: false,
-        error: error.message,
-      };
+      return { success: false, error: err.message };
     }
   },
 
   reset: () => {
     const images = get().formData.images;
-
-    images.forEach((image) => {
-      if (image.file && image.preview) {
-        URL.revokeObjectURL(image.preview);
-      }
+    images.forEach((img) => {
+      if (img.file && img.preview) URL.revokeObjectURL(img.preview);
     });
 
     set({

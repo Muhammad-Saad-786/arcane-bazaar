@@ -6,6 +6,9 @@ import {
   HiOutlinePlus,
   HiOutlineTrash,
   HiOutlineSparkles,
+  HiOutlineTag,
+  HiOutlineFire,
+  HiOutlineGift,
 } from "react-icons/hi";
 import useCreateListingStore from "../../stores/useCreateListingStore";
 
@@ -34,7 +37,6 @@ export default function ListingDetailsStep() {
     maxSize: 5242880,
   });
 
-  // Auto-suggest title format helper
   const handleAutoSuggestTitle = () => {
     const gameName = game?.name || "Game";
     let suggested = "";
@@ -48,7 +50,7 @@ export default function ListingDetailsStep() {
       suggested =
         parts.length > 1 ? parts.join(" | ") : `${gameName} Premium Account`;
     } else if (categoryType === "topup" || categoryType === "currency") {
-      suggested = `${gameName} Instant Top-up | Fast & Safe Delivery ${
+      suggested = `${gameName} Instant Top-up & Currency | Fast Recharge ${
         formData.region ? `[${formData.region}]` : ""
       }`;
     } else if (categoryType === "boosting") {
@@ -57,12 +59,10 @@ export default function ListingDetailsStep() {
           ? "Placement Matches Boost"
           : formData.service_type === "win_boost"
             ? "Net Wins Boost"
-            : `${formData.current_rank || "Rank"} to ${formData.target_rank || "Desired Rank"} Boost`
+            : `${formData.current_rank || "Rank"} to ${formData.target_rank || "Target Rank"} Boost`
       }`;
     } else if (categoryType === "items") {
-      suggested = `${formData.item_name || "Rare Item"} x${
-        formData.quantity || 1
-      } - ${gameName}`;
+      suggested = `${formData.item_name || "Rare Item"} x${formData.quantity || 1} - ${gameName}`;
     }
 
     if (suggested) {
@@ -88,12 +88,11 @@ export default function ListingDetailsStep() {
           onClick={handleAutoSuggestTitle}
           className="flex items-center gap-1.5 px-3 py-1.5 bg-[#1E1D24] border border-[#2A2932] hover:border-arcane-gold/50 text-xs font-medium text-arcane-gold rounded-lg transition-all"
         >
-          <HiOutlineSparkles className="w-4 h-4" />
-          Auto-Suggest Title
+          <HiOutlineSparkles className="w-4 h-4" /> Auto-Suggest Title
         </button>
       </div>
 
-      {/* Title */}
+      {/* Listing Title */}
       <div>
         <label className="block text-sm text-text-secondary mb-2">
           Listing Title <span className="text-red-400">*</span>
@@ -103,11 +102,11 @@ export default function ListingDetailsStep() {
           value={formData.title}
           onChange={(e) => updateField("title", e.target.value)}
           placeholder={`e.g., [${game?.name || "Game"}] Safe & Fast Delivery`}
-          className="w-full bg-[#1E1D24] border border-[#2A2932] rounded-xl py-3 px-4 text-white outline-none focus:border-arcane-gold/50 transition-all placeholder:text-gray-500"
+          className="w-full bg-[#1E1D24] border border-[#2A2932] rounded-xl py-3 px-4 text-white outline-none focus:border-arcane-gold/50 transition-all placeholder:text-gray-500 text-sm"
         />
       </div>
 
-      {/* -------------------- 1. ACCOUNT CATEGORY FIELDS -------------------- */}
+      {/* ================= 1. ACCOUNT CATEGORY FIELDS ================= */}
       {categoryType === "account" && (
         <div className="space-y-4 p-4 bg-[#141319]/60 border border-[#2A2932] rounded-2xl">
           <h3 className="text-sm font-semibold text-white tracking-wide uppercase">
@@ -181,82 +180,202 @@ export default function ListingDetailsStep() {
         </div>
       )}
 
-      {/* -------------------- 2. TOPUP / CURRENCY CATEGORY FIELDS -------------------- */}
+      {/* ================= 2. MULTI-PACKAGE TOPUP / CURRENCY BUILDER ================= */}
       {(categoryType === "topup" || categoryType === "currency") && (
         <div className="space-y-4 p-4 bg-[#141319]/60 border border-[#2A2932] rounded-2xl">
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between pb-2 border-b border-[#2A2932]">
             <div>
-              <h3 className="text-sm font-semibold text-white tracking-wide uppercase">
-                Amount Tiers & Pricing
+              <h3 className="text-sm font-semibold text-white tracking-wide uppercase flex items-center gap-2">
+                <HiOutlineTag className="w-4 h-4 text-arcane-gold" />{" "}
+                Denomination Packages & Discounts
               </h3>
               <p className="text-xs text-text-muted mt-0.5">
-                Add the denomination packages buyers can choose from.
+                Add top-up package tiers with regular prices, selling prices,
+                discounts, and bonus labels.
               </p>
             </div>
             <button
               type="button"
               onClick={addAmountOption}
-              className="flex items-center gap-1.5 px-3 py-1.5 bg-arcane-gold text-[#141319] text-xs font-semibold rounded-lg hover:bg-arcane-gold/90 transition-all"
+              className="flex items-center gap-1.5 px-3.5 py-2 bg-arcane-gold text-[#141319] text-xs font-bold rounded-xl hover:bg-arcane-gold/90 transition-all shadow-md"
             >
-              <HiOutlinePlus className="w-4 h-4" />
-              Add Option
+              <HiOutlinePlus className="w-4 h-4" /> Add Package
             </button>
           </div>
 
           {formData.amount_options.length === 0 ? (
-            <div className="py-6 text-center border border-dashed border-[#2A2932] rounded-xl text-text-muted text-xs">
-              No packages added yet. Click &quot;Add Option&quot; to set amount
-              options and pricing.
+            <div className="py-8 text-center border-2 border-dashed border-[#2A2932] rounded-2xl text-text-muted text-xs">
+              <p className="font-semibold text-white mb-1">
+                No Packages Configured
+              </p>
+              <p>
+                Click &quot;Add Package&quot; to define denominations (e.g., 56
+                Diamonds, 256 Diamonds, etc.).
+              </p>
             </div>
           ) : (
             <div className="space-y-3">
-              {formData.amount_options.map((opt, index) => (
-                <div
-                  key={opt.id}
-                  className="flex items-center gap-3 p-3 bg-[#1E1D24] border border-[#2A2932] rounded-xl"
-                >
-                  <span className="text-xs font-medium text-text-muted w-6">
-                    #{index + 1}
-                  </span>
-                  <div className="flex-1">
-                    <input
-                      type="text"
-                      value={opt.amount}
-                      onChange={(e) =>
-                        updateAmountOption(opt.id, "amount", e.target.value)
-                      }
-                      placeholder="e.g., 1,000 Diamonds / 500k Gold"
-                      className="w-full bg-[#141319] border border-[#2A2932] rounded-lg py-2 px-3 text-white text-xs outline-none focus:border-arcane-gold/50"
-                    />
-                  </div>
-                  <div className="w-32 relative">
-                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted text-xs">
-                      $
-                    </span>
-                    <input
-                      type="number"
-                      step="0.01"
-                      value={opt.price}
-                      onChange={(e) =>
-                        updateAmountOption(opt.id, "price", e.target.value)
-                      }
-                      placeholder="0.00"
-                      className="w-full bg-[#141319] border border-[#2A2932] rounded-lg py-2 pl-7 pr-3 text-white text-xs outline-none focus:border-arcane-gold/50"
-                    />
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => removeAmountOption(opt.id)}
-                    className="p-2 text-text-muted hover:text-red-400 rounded-lg hover:bg-red-500/10 transition-colors"
+              {formData.amount_options.map((opt, index) => {
+                const hasDiscount = Boolean(
+                  opt.discount_percent && Number(opt.discount_percent) > 0,
+                );
+                return (
+                  <div
+                    key={opt.id}
+                    className="p-4 bg-[#1E1D24] border border-[#2A2932] hover:border-arcane-gold/30 rounded-2xl transition-all space-y-3"
                   >
-                    <HiOutlineTrash className="w-4 h-4" />
-                  </button>
-                </div>
-              ))}
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <span className="w-6 h-6 rounded-lg bg-[#141319] text-arcane-gold text-xs font-bold flex items-center justify-center">
+                          #{index + 1}
+                        </span>
+                        <span className="text-xs font-semibold text-white">
+                          Package Configuration
+                        </span>
+                        {hasDiscount && (
+                          <span className="px-2 py-0.5 rounded-full bg-red-500/15 border border-red-500/30 text-red-400 text-[10px] font-bold">
+                            {opt.discount_percent}% OFF
+                          </span>
+                        )}
+                        {opt.is_popular && (
+                          <span className="px-2 py-0.5 rounded-full bg-arcane-gold/15 border border-arcane-gold/30 text-arcane-gold text-[10px] font-bold flex items-center gap-1">
+                            <HiOutlineFire className="w-3 h-3" /> Best Value
+                          </span>
+                        )}
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={() => removeAmountOption(opt.id)}
+                        className="p-1.5 text-text-muted hover:text-red-400 rounded-lg hover:bg-red-500/10 transition-colors"
+                      >
+                        <HiOutlineTrash className="w-4 h-4" />
+                      </button>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
+                      {/* Package Name */}
+                      <div className="sm:col-span-2">
+                        <label className="block text-[11px] text-text-muted mb-1">
+                          Package Name / Amount{" "}
+                          <span className="text-red-400">*</span>
+                        </label>
+                        <input
+                          type="text"
+                          value={opt.amount}
+                          onChange={(e) =>
+                            updateAmountOption(opt.id, "amount", e.target.value)
+                          }
+                          placeholder="e.g., 256 Diamonds / 10,000 V-Bucks"
+                          className="w-full bg-[#141319] border border-[#2A2932] rounded-xl py-2 px-3 text-white text-xs outline-none focus:border-arcane-gold/50"
+                        />
+                      </div>
+
+                      {/* Original / List Price */}
+                      <div>
+                        <label className="block text-[11px] text-text-muted mb-1">
+                          Original Price ($)
+                        </label>
+                        <input
+                          type="number"
+                          step="0.01"
+                          value={opt.original_price || ""}
+                          onChange={(e) =>
+                            updateAmountOption(
+                              opt.id,
+                              "original_price",
+                              e.target.value,
+                            )
+                          }
+                          placeholder="e.g., 5.50"
+                          className="w-full bg-[#141319] border border-[#2A2932] rounded-xl py-2 px-3 text-white text-xs outline-none focus:border-arcane-gold/50"
+                        />
+                      </div>
+
+                      {/* Selling / Discounted Price */}
+                      <div>
+                        <label className="block text-[11px] text-text-muted mb-1">
+                          Selling Price ($){" "}
+                          <span className="text-red-400">*</span>
+                        </label>
+                        <input
+                          type="number"
+                          step="0.01"
+                          value={opt.price}
+                          onChange={(e) =>
+                            updateAmountOption(opt.id, "price", e.target.value)
+                          }
+                          placeholder="e.g., 4.39"
+                          className="w-full bg-[#141319] border border-[#2A2932] rounded-xl py-2 px-3 text-white text-xs font-semibold text-arcane-gold outline-none focus:border-arcane-gold/50"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-1">
+                      {/* Bonus Text */}
+                      <div>
+                        <label className="block text-[11px] text-text-muted mb-1 flex items-center gap-1">
+                          <HiOutlineGift className="w-3.5 h-3.5 text-arcane-gold" />{" "}
+                          Bonus Tag (Optional)
+                        </label>
+                        <input
+                          type="text"
+                          value={opt.bonus || ""}
+                          onChange={(e) =>
+                            updateAmountOption(opt.id, "bonus", e.target.value)
+                          }
+                          placeholder="e.g., +25 Bonus / Extra Code"
+                          className="w-full bg-[#141319] border border-[#2A2932] rounded-xl py-2 px-3 text-white text-xs outline-none focus:border-arcane-gold/50"
+                        />
+                      </div>
+
+                      {/* Custom Discount % */}
+                      <div>
+                        <label className="block text-[11px] text-text-muted mb-1">
+                          Discount % (Auto-computed)
+                        </label>
+                        <input
+                          type="number"
+                          value={opt.discount_percent || ""}
+                          onChange={(e) =>
+                            updateAmountOption(
+                              opt.id,
+                              "discount_percent",
+                              e.target.value,
+                            )
+                          }
+                          placeholder="e.g., 20"
+                          className="w-full bg-[#141319] border border-[#2A2932] rounded-xl py-2 px-3 text-white text-xs outline-none focus:border-arcane-gold/50"
+                        />
+                      </div>
+
+                      {/* Highlight Badge Toggle */}
+                      <div className="flex items-end pb-1">
+                        <label className="flex items-center gap-2 cursor-pointer text-xs text-gray-300 select-none">
+                          <input
+                            type="checkbox"
+                            checked={Boolean(opt.is_popular)}
+                            onChange={(e) =>
+                              updateAmountOption(
+                                opt.id,
+                                "is_popular",
+                                e.target.checked,
+                              )
+                            }
+                            className="w-4 h-4 rounded accent-arcane-gold bg-[#141319] border-[#2A2932]"
+                          />
+                          <span>Mark as Most Popular</span>
+                        </label>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           )}
 
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-2">
+          {/* Delivery & Platform settings */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-3 border-t border-[#2A2932]/70">
             <div>
               <label className="block text-xs text-text-secondary mb-1.5">
                 Delivery Method
@@ -264,7 +383,7 @@ export default function ListingDetailsStep() {
               <select
                 value={formData.delivery_method}
                 onChange={(e) => updateField("delivery_method", e.target.value)}
-                className="w-full bg-[#1E1D24] border border-[#2A2932] rounded-xl py-2.5 px-3 text-white text-sm outline-none"
+                className="w-full bg-[#1E1D24] border border-[#2A2932] rounded-xl py-2.5 px-3 text-white text-xs outline-none"
               >
                 <option value="login">Account Login</option>
                 <option value="gifting">In-Game Gifting</option>
@@ -280,7 +399,7 @@ export default function ListingDetailsStep() {
                 value={formData.region}
                 onChange={(e) => updateField("region", e.target.value)}
                 placeholder="e.g., Global / US / Asia"
-                className="w-full bg-[#1E1D24] border border-[#2A2932] rounded-xl py-2.5 px-3.5 text-white text-sm outline-none focus:border-arcane-gold/50 transition-all"
+                className="w-full bg-[#1E1D24] border border-[#2A2932] rounded-xl py-2.5 px-3.5 text-white text-xs outline-none focus:border-arcane-gold/50 transition-all"
               />
             </div>
             <div>
@@ -292,14 +411,14 @@ export default function ListingDetailsStep() {
                 value={formData.platform}
                 onChange={(e) => updateField("platform", e.target.value)}
                 placeholder="e.g., Android / iOS / PC"
-                className="w-full bg-[#1E1D24] border border-[#2A2932] rounded-xl py-2.5 px-3.5 text-white text-sm outline-none focus:border-arcane-gold/50 transition-all"
+                className="w-full bg-[#1E1D24] border border-[#2A2932] rounded-xl py-2.5 px-3.5 text-white text-xs outline-none focus:border-arcane-gold/50 transition-all"
               />
             </div>
           </div>
         </div>
       )}
 
-      {/* -------------------- 3. BOOSTING CATEGORY FIELDS -------------------- */}
+      {/* ================= 3. BOOSTING CATEGORY FIELDS ================= */}
       {categoryType === "boosting" && (
         <div className="space-y-4 p-4 bg-[#141319]/60 border border-[#2A2932] rounded-2xl">
           <h3 className="text-sm font-semibold text-white tracking-wide uppercase">
@@ -375,7 +494,7 @@ export default function ListingDetailsStep() {
         </div>
       )}
 
-      {/* -------------------- 4. ITEMS CATEGORY FIELDS -------------------- */}
+      {/* ================= 4. ITEMS CATEGORY FIELDS ================= */}
       {categoryType === "items" && (
         <div className="space-y-4 p-4 bg-[#141319]/60 border border-[#2A2932] rounded-2xl">
           <h3 className="text-sm font-semibold text-white tracking-wide uppercase">
@@ -452,7 +571,7 @@ export default function ListingDetailsStep() {
         </div>
       )}
 
-      {/* -------------------- PRICE FIELD (Hidden if Topup dynamic tiers are used) -------------------- */}
+      {/* ================= FIXED PRICE (ACCOUNTS / BOOSTING / ITEMS) ================= */}
       {categoryType !== "topup" && categoryType !== "currency" && (
         <div>
           <label className="block text-sm text-text-secondary mb-2">
@@ -486,7 +605,7 @@ export default function ListingDetailsStep() {
           onChange={(e) => updateField("description", e.target.value)}
           rows={4}
           placeholder="Describe delivery rules, guarantee terms, and listing highlights in detail..."
-          className="w-full bg-[#1E1D24] border border-[#2A2932] rounded-xl py-3 px-4 text-white outline-none focus:border-arcane-gold/50 transition-all resize-none"
+          className="w-full bg-[#1E1D24] border border-[#2A2932] rounded-xl py-3 px-4 text-white outline-none focus:border-arcane-gold/50 transition-all resize-none text-sm"
         />
       </div>
 
@@ -499,7 +618,7 @@ export default function ListingDetailsStep() {
           <select
             value={formData.delivery_type}
             onChange={(e) => updateField("delivery_type", e.target.value)}
-            className="w-full bg-[#1E1D24] border border-[#2A2932] rounded-xl py-3 px-4 text-white outline-none"
+            className="w-full bg-[#1E1D24] border border-[#2A2932] rounded-xl py-3 px-4 text-white outline-none text-sm"
           >
             <option value="manual">Manual Delivery</option>
             <option value="instant">Instant Delivery (Automated)</option>
@@ -515,7 +634,7 @@ export default function ListingDetailsStep() {
             type="number"
             value={formData.delivery_time}
             onChange={(e) => updateField("delivery_time", e.target.value)}
-            className="w-full bg-[#1E1D24] border border-[#2A2932] rounded-xl py-3 px-4 text-white outline-none focus:border-arcane-gold/50 transition-all"
+            className="w-full bg-[#1E1D24] border border-[#2A2932] rounded-xl py-3 px-4 text-white outline-none focus:border-arcane-gold/50 transition-all text-sm"
           />
         </div>
       </div>
