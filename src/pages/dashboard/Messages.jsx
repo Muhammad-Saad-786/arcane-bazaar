@@ -106,13 +106,13 @@ export default function Messages() {
             {/* Search Input */}
             <div className="p-3 border-b border-[#2A2932]">
               <div className="relative">
-                <HiOutlineSearch className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-text-muted" />
+                <HiOutlineSearch className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white" />
                 <input
                   type="text"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   placeholder="Search chats..."
-                  className="w-full bg-[#18171E] border border-[#2A2932] rounded-xl py-2 pl-9 pr-3 text-xs text-white placeholder:text-gray-500 outline-none focus:border-arcane-gold/50"
+                  className="w-full bg-[#18171E] border border-[#2A2932] rounded-xl py-2 pl-9 pr-3 text-xs text-white placeholder:text-white outline-none focus:border-arcane-gold/50"
                 />
               </div>
             </div>
@@ -124,7 +124,7 @@ export default function Messages() {
                   <Spinner size="md" />
                 </div>
               ) : filteredConversations.length === 0 ? (
-                <div className="py-12 text-center text-text-muted text-xs">
+                <div className="py-12 text-center text-white text-xs">
                   No conversations found
                 </div>
               ) : (

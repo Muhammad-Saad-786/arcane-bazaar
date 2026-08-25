@@ -54,9 +54,9 @@ export default function UserMenu() {
       {/* Avatar Button */}
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="flex items-center gap-2 p-1.5 rounded-xl hover:bg-arcane-surface transition-all border border-transparent hover:border-arcane-border"
+        className="flex items-center gap-2 p-1.5 rounded-xl hover:bg-arcane-surface transition-all border border-transparent hover:border-arcane-border hover:cursor-pointer"
       >
-        <div className="w-8 h-8 rounded-full bg-arcane-gold flex items-center justify-center text-sm font-bold text-white overflow-hidden">
+        <div className="w-10 h-10 rounded-full bg-arcane-gold flex items-center justify-center text-sm font-bold text-white overflow-hidden">
           {profile?.avatar_url ? (
             <img
               src={profile.avatar_url}

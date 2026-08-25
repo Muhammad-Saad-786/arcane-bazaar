@@ -36,15 +36,14 @@ export default function Wallet() {
   return (
     <>
       <SEO title="My Wallet" />
+      <h1 className="text-2xl font-display font-extrabold text-white">
+        My Wallet
+      </h1>
       <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
-        className="space-y-6 max-w-2xl"
+        className="space-y-6 max-w-2xl mx-auto"
       >
-        <h1 className="text-2xl font-display font-extrabold text-white">
-          My Wallet
-        </h1>
-
         <GlassCard className="p-6 sm:p-8 text-center">
           <div className="w-16 h-16 rounded-2xl bg-arcane-gold/10 flex items-center justify-center mx-auto mb-4">
             <HiOutlineCreditCard className="w-8 h-8 text-arcane-gold" />

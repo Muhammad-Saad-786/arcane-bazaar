@@ -93,10 +93,10 @@ export default function SmartSearch() {
   };
 
   return (
-    <div ref={containerRef} className="relative w-full max-w-2xl">
+    <div ref={containerRef} className="relative w-full max-w-full">
       <form onSubmit={handleSearchSubmit}>
         <div className="relative">
-          <HiOutlineSearch className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-text-muted" />
+          <HiOutlineSearch className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-white" />
           <input
             ref={inputRef}
             type="text"
@@ -106,20 +106,20 @@ export default function SmartSearch() {
               setFocused(true);
             }}
             placeholder="Search games, accounts, items..."
-            className="w-full bg-arcane-surface border border-arcane-border rounded-2xl pl-12 pr-12 py-3 text-white placeholder-text-muted outline-none focus:border-arcane-purple/50 focus:ring-2 focus:ring-arcane-purple/20 transition-all text-sm"
+            className="w-full bg-arcane-surface border border-arcane-border rounded-2xl pl-12 pr-12 py-3 text-white placeholder-text-white outline-none focus:border-arcane-purple/50 focus:ring-2 focus:ring-arcane-purple/20 transition-all text-sm"
           />
           {query && (
             <button
               type="button"
               onClick={clearSearch}
-              className="absolute right-3 top-1/2 -translate-y-1/2 p-1.5 text-text-muted hover:text-white rounded-lg hover:bg-arcane-border transition-all"
+              className="absolute right-3 top-1/2 -translate-y-1/2 p-1.5 text-white hover:text-white rounded-lg hover:bg-arcane-border transition-all"
             >
               <HiOutlineX className="w-4 h-4" />
             </button>
           )}
           {!query && !focused && (
             <div className="absolute right-3 top-1/2 -translate-y-1/2 hidden sm:flex items-center gap-1">
-              <kbd className="px-2 py-0.5 text-[10px] text-text-muted bg-arcane-border rounded-md">
+              <kbd className="px-2 py-0.5 text-[10px] text-white bg-arcane-border rounded-md">
                 Ctrl+K
               </kbd>
             </div>

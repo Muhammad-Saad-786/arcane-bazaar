@@ -3,10 +3,10 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Link } from "react-router-dom";
 import useAuthStore from "../../stores/useAuthStore";
 import useNotificationStore from "../../stores/useNotificationStore";
-import GlassCard from "../../components/ui/GlassCard";
 import Spinner from "../../components/ui/Spinner";
 import Button from "../../components/ui/Button";
 import SEO from "../../components/ui/SEO";
+import emptyNotificationImage from "/public/icons/pages/empty-orders.png";
 import {
   HiOutlineBell,
   HiOutlineCheck,
@@ -127,88 +127,89 @@ export default function Notifications() {
   return (
     <>
       <SEO title="All Notifications | Arcane Bazaar" />
+      {/* Header */}
+      <div className="flex items-center justify-between flex-wrap gap-4">
+        <div>
+          <h1 className="text-2xl font-display font-extrabold text-white">
+            Notifications
+            {unreadCount > 0 && (
+              <span className="ml-2 px-2.5 py-0.5 bg-arcane-gold text-[#141319] text-xs font-bold rounded-full">
+                {unreadCount} new
+              </span>
+            )}
+          </h1>
+          <p className="text-text-muted text-xs sm:text-sm mt-1">
+            Stay updated with your orders and trading activity
+          </p>
+        </div>
+
+        <div className="flex gap-2">
+          {unreadCount > 0 && (
+            <Button
+              onClick={() => markAllAsRead(user?.id)}
+              variant="ghost"
+              size="sm"
+            >
+              <HiOutlineCheck className="w-4 h-4" /> Mark All Read
+            </Button>
+          )}
+          {notifications.length > 0 && (
+            <Button
+              onClick={() => deleteAll(user?.id)}
+              variant="ghost"
+              size="sm"
+            >
+              <HiOutlineTrash className="w-4 h-4" /> Clear All
+            </Button>
+          )}
+        </div>
+      </div>
+
+      {/* Filter Tabs */}
+      <div className="flex gap-2 flex-wrap sm:mt-8 mt-5">
+        {filterTabs.map((tab) => {
+          const count =
+            tab.key === "all"
+              ? notifications.length
+              : tab.key === "unread"
+                ? unreadCount
+                : notifications.filter((n) => n.type === tab.key).length;
+
+          return (
+            <button
+              key={tab.key}
+              onClick={() => setActiveFilter(tab.key)}
+              className={`px-3.5 py-1.5 rounded-xl text-xs font-semibold transition-all ${
+                activeFilter === tab.key
+                  ? "bg-arcane-gold text-[#141319]"
+                  : "bg-[#18171E] text-white  border border-[#2A2932]"
+              }`}
+            >
+              {tab.label} ({count})
+            </button>
+          );
+        })}
+      </div>
       <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
-        className="space-y-6 max-w-3xl"
+        className="space-y-6 max-w-3xl mx-auto"
       >
-        {/* Header */}
-        <div className="flex items-center justify-between flex-wrap gap-4">
-          <div>
-            <h1 className="text-2xl font-display font-extrabold text-white">
-              Notifications
-              {unreadCount > 0 && (
-                <span className="ml-2 px-2.5 py-0.5 bg-arcane-gold text-[#141319] text-xs font-bold rounded-full">
-                  {unreadCount} new
-                </span>
-              )}
-            </h1>
-            <p className="text-text-muted text-xs sm:text-sm mt-1">
-              Stay updated with your orders and trading activity
-            </p>
-          </div>
-
-          <div className="flex gap-2">
-            {unreadCount > 0 && (
-              <Button
-                onClick={() => markAllAsRead(user?.id)}
-                variant="ghost"
-                size="sm"
-              >
-                <HiOutlineCheck className="w-4 h-4" /> Mark All Read
-              </Button>
-            )}
-            {notifications.length > 0 && (
-              <Button
-                onClick={() => deleteAll(user?.id)}
-                variant="ghost"
-                size="sm"
-              >
-                <HiOutlineTrash className="w-4 h-4" /> Clear All
-              </Button>
-            )}
-          </div>
-        </div>
-
-        {/* Filter Tabs */}
-        <div className="flex gap-2 flex-wrap">
-          {filterTabs.map((tab) => {
-            const count =
-              tab.key === "all"
-                ? notifications.length
-                : tab.key === "unread"
-                  ? unreadCount
-                  : notifications.filter((n) => n.type === tab.key).length;
-
-            return (
-              <button
-                key={tab.key}
-                onClick={() => setActiveFilter(tab.key)}
-                className={`px-3.5 py-1.5 rounded-xl text-xs font-semibold transition-all ${
-                  activeFilter === tab.key
-                    ? "bg-arcane-gold text-[#141319]"
-                    : "bg-[#18171E] text-text-muted hover:text-white border border-[#2A2932]"
-                }`}
-              >
-                {tab.label} ({count})
-              </button>
-            );
-          })}
-        </div>
-
         {/* Notifications List */}
         {filteredNotifications.length === 0 ? (
-          <div className="p-12 text-center bg-[#18171E] border border-[#2A2932] rounded-2xl">
-            <HiOutlineBell className="w-10 h-10 text-arcane-gold mx-auto mb-3 opacity-40" />
-            <h3 className="text-sm font-bold text-white">
+          <div className="flex flex-col items-center justify-center py-12 px-4">
+            <div className="w-32 h-32 sm:w-40 sm:h-40 mb-4">
+              <img
+                src={emptyNotificationImage}
+                alt="No notifications"
+                className="w-full h-full object-contain"
+              />
+            </div>
+            <h3 className="text-base sm:text-lg font-bold text-white text-center">
               {activeFilter === "unread"
                 ? "You're all caught up!"
                 : "No notifications yet"}
             </h3>
-            <p className="text-text-muted text-xs mt-1">
-              Notifications about your orders and trade activities will appear
-              here.
-            </p>
           </div>
         ) : (
           <div className="space-y-2.5">

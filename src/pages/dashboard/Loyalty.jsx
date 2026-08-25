@@ -11,6 +11,7 @@ import useAuthStore from "../../stores/useAuthStore";
 import GlassCard from "../../components/ui/GlassCard";
 import Spinner from "../../components/ui/Spinner";
 import SEO from "../../components/ui/SEO";
+import LoyaltyImage from "/public/icons/pages/points.png";
 const tiers = [
   {
     name: "Bronze",
@@ -186,10 +187,10 @@ export default function Loyalty() {
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
-              className={`px-4 py-2 rounded-lg text-sm font-medium capitalize transition-all ${
+              className={`px-4 py-2 rounded-lg text-sm font-medium capitalize transition-all hover:cursor-pointer ${
                 activeTab === tab
-                  ? "bg-arcane-purple/20 text-arcane-purple"
-                  : "text-text-muted hover:text-white"
+                  ? "bg-arcane-purple/20 text-white"
+                  : "text-white"
               }`}
             >
               {tab}
@@ -202,8 +203,14 @@ export default function Loyalty() {
           <div className="space-y-6">
             {/* Points Balance */}
             <GlassCard className="p-6 text-center">
-              <div className="w-16 h-16 rounded-2xl bg-arcane-gold/10 flex items-center justify-center mx-auto mb-3">
-                <span className="text-3xl">🪙</span>
+              <div className="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-3">
+                <div className="w-32 h-32 sm:w-40 sm:h-40 mb-2">
+                  <img
+                    src={LoyaltyImage}
+                    alt="Loyalty Program"
+                    className="w-full h-full object-contain"
+                  />
+                </div>{" "}
               </div>
               <p className="text-3xl font-extrabold text-white">
                 {points.toLocaleString()}

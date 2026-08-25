@@ -1,38 +1,41 @@
 import { motion } from "framer-motion";
-import { HiOutlineTrendingUp } from "react-icons/hi";
-import GlassCard from "../../components/ui/GlassCard";
 import Button from "../../components/ui/Button";
 import { Link } from "react-router-dom";
 import SEO from "../../components/ui/SEO";
+import emptyBoostingImage from "/public/icons/pages/empty-orders.png";
+
 export default function Boosting() {
   return (
     <>
-      <SEO title="Boosting " />
+      <SEO title="My Boosting" />
+      <h1 className="text-2xl font-display font-extrabold text-white">
+        My Boosting
+      </h1>
       <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
-        className="space-y-6"
+        className="space-y-6 max-w-2xl mx-auto"
       >
-        <h1 className="text-2xl font-display font-extrabold text-white">
-          Boosting Services
-        </h1>
-        <GlassCard className="p-12 text-center">
-          <div className="w-16 h-16 rounded-2xl bg-arcane-purple/10 flex items-center justify-center mx-auto mb-4">
-            <HiOutlineTrendingUp className="w-8 h-8 text-arcane-purple" />
+        <div className="flex flex-col items-center justify-center py-12 px-4">
+          {/* PNG Image */}
+          <div className="w-32 h-32 sm:w-40 sm:h-40 mb-6">
+            <img
+              src={emptyBoostingImage}
+              alt="No boosting"
+              className="w-full h-full object-contain"
+            />
           </div>
-          <h2 className="text-lg font-semibold text-white">
-            No boosting orders
+
+          <h2 className="text-xl sm:text-2xl font-semibold text-white text-center">
+            No boosting yet
           </h2>
-          <p className="text-text-muted text-sm mt-1">
-            Your rank boosting and power leveling orders will appear here
-          </p>
-          <Link
-            to="/marketplace?category=boosting"
-            className="mt-4 inline-block"
-          >
-            <Button variant="primary">Browse Boosting</Button>
+
+          <Link to="/marketplace" className="mt-6">
+            <Button variant="primary" size="lg">
+              Browse Marketplace
+            </Button>
           </Link>
-        </GlassCard>
+        </div>
       </motion.div>
     </>
   );

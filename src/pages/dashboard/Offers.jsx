@@ -1,33 +1,42 @@
 import { motion } from "framer-motion";
-import { HiOutlineCurrencyDollar } from "react-icons/hi";
-import GlassCard from "../../components/ui/GlassCard";
 import Button from "../../components/ui/Button";
 import { Link } from "react-router-dom";
+import SEO from "../../components/ui/SEO";
 
+import emptyOffersImage from "/public/icons/pages/empty-orders.png";
 export default function Offers() {
   return (
-    <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      className="space-y-6"
-    >
+    <>
+      <SEO title="My Offers" />
       <h1 className="text-2xl font-display font-extrabold text-white">
-        Special Offers
+        My Offers
       </h1>
-      <GlassCard className="p-12 text-center">
-        <div className="w-16 h-16 rounded-2xl bg-arcane-gold/10 flex items-center justify-center mx-auto mb-4">
-          <HiOutlineCurrencyDollar className="w-8 h-8 text-arcane-gold" />
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        className="space-y-6 max-w-2xl mx-auto"
+      >
+        <div className="flex flex-col items-center justify-center py-12 px-4">
+          {/* PNG Image */}
+          <div className="w-32 h-32 sm:w-40 sm:h-40 mb-6">
+            <img
+              src={emptyOffersImage}
+              alt="No offers"
+              className="w-full h-full object-contain"
+            />
+          </div>
+
+          <h2 className="text-xl sm:text-2xl font-semibold text-white text-center">
+            No offers yet
+          </h2>
+
+          <Link to="/marketplace" className="mt-6">
+            <Button variant="primary" size="lg">
+              Browse Marketplace
+            </Button>
+          </Link>
         </div>
-        <h2 className="text-lg font-semibold text-white">
-          No offers available
-        </h2>
-        <p className="text-text-muted text-sm mt-1">
-          Special deals and discounts will appear here
-        </p>
-        <Link to="/marketplace" className="mt-4 inline-block">
-          <Button variant="primary">Browse Marketplace</Button>
-        </Link>
-      </GlassCard>
-    </motion.div>
+      </motion.div>
+    </>
   );
 }
