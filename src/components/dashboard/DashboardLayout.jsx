@@ -30,7 +30,6 @@ import LoyaltyBadge from "../ui/LoyaltyBadge";
 import dashboardBackground from "/public/bg.png";
 
 const navItems = [
-  { icon: HiOutlineViewGrid, label: "Dashboard", path: "/dashboard" },
   { icon: HiOutlineShoppingBag, label: "Orders", path: "/dashboard/orders" },
   { icon: HiOutlineCurrencyDollar, label: "Offers", path: "/dashboard/offers" },
   { icon: HiOutlineTrendingUp, label: "Boosting", path: "/dashboard/boosting" },
@@ -41,7 +40,6 @@ const navItems = [
     label: "Become a Seller",
     path: "/become-seller",
   },
-  { icon: HiOutlineHeart, label: "Wishlist", path: "/dashboard/wishlist" },
   { icon: HiOutlineMail, label: "Messages", path: "/dashboard/messages" },
   {
     icon: HiOutlineBell,
@@ -97,7 +95,6 @@ export default function DashboardLayout() {
             backgroundPosition: "center",
           }}
         >
-          {/* Dark overlay for better readability */}
           {/* <div className="absolute inset-0 bg-arcane-dark/80 backdrop-blur-xs"></div> */}
         </div>
 

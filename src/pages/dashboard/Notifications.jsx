@@ -6,7 +6,7 @@ import useNotificationStore from "../../stores/useNotificationStore";
 import Spinner from "../../components/ui/Spinner";
 import Button from "../../components/ui/Button";
 import SEO from "../../components/ui/SEO";
-import emptyNotificationImage from "/public/icons/pages/empty-orders.png";
+import emptyNotificationImage from "/public/icons/pages/notifications.png";
 import {
   HiOutlineBell,
   HiOutlineCheck,
@@ -173,13 +173,13 @@ export default function Notifications() {
               ? notifications.length
               : tab.key === "unread"
                 ? unreadCount
-                : notifications.filter((n) => n.type === tab.key).length;
+                : notifications.filter((n) => n.type === tab.key).length; //ss
 
           return (
             <button
               key={tab.key}
               onClick={() => setActiveFilter(tab.key)}
-              className={`px-3.5 py-1.5 rounded-xl text-xs font-semibold transition-all ${
+              className={`px-3.5 py-1.5 rounded-xl text-xs font-semibold transition-all cursor-pointer  ${
                 activeFilter === tab.key
                   ? "bg-arcane-gold text-[#141319]"
                   : "bg-[#18171E] text-white  border border-[#2A2932]"

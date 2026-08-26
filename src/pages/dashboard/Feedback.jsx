@@ -12,7 +12,7 @@ import useAuthStore from "../../stores/useAuthStore";
 import GlassCard from "../../components/ui/GlassCard";
 import Spinner from "../../components/ui/Spinner";
 import SEO from "../../components/ui/SEO";
-
+import emptyFeedbackImage from "/public/icons/pages/empty-orders.png";
 const ITEMS_PER_PAGE = 10;
 
 export default function Feedback() {
@@ -85,7 +85,7 @@ export default function Feedback() {
     <motion.div
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
-      className="space-y-6 max-w-3xl"
+      className="space-y-6 max-w-full mx-auto"
     >
       <SEO title="Feedback & Reviews" />
 
@@ -131,7 +131,7 @@ export default function Feedback() {
             <div className={`text-xl font-extrabold ${stat.color}`}>
               {stat.value}
             </div>
-            <div className="text-text-muted text-xs mt-1">{stat.label}</div>
+            <div className="text-white text-xs mt-1">{stat.label}</div>
           </GlassCard>
         ))}
       </div>
@@ -151,8 +151,8 @@ export default function Feedback() {
             }}
             className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
               activeTab === tab.id
-                ? "bg-arcane-purple/20 text-arcane-purple"
-                : "text-text-muted hover:text-white"
+                ? "bg-arcane-gold text-[#141319]"
+                : "text-white bg-arcane-dark"
             }`}
           >
             {tab.label}
@@ -162,26 +162,32 @@ export default function Feedback() {
 
       {/* Reviews List */}
       {loading ? (
-        <div className="flex justify-center py-20">
+        <div className="flex justify-center py-20 items-center">
           <Spinner size="lg" />
         </div>
       ) : reviews.length === 0 ? (
-        <GlassCard className="p-12 text-center">
-          <div className="w-16 h-16 rounded-2xl bg-arcane-purple/10 flex items-center justify-center mx-auto mb-4">
-            <HiOutlineStar className="w-8 h-8 text-arcane-purple" />
+        <div className="flex flex-col items-center justify-center py-12 px-4">
+          <div className="w-32 h-32 sm:w-40 sm:h-40 mb-4">
+            <img
+              src={emptyFeedbackImage}
+              alt="No feedback"
+              className="w-full h-full object-contain"
+            />
           </div>
-          <h3 className="text-lg font-semibold text-white">No reviews yet</h3>
-          <p className="text-text-muted text-sm mt-1">
+          <h3 className="text-lg font-semibold text-white text-center">
+            No reviews yet
+          </h3>
+          <p className="text-text-muted text-sm mt-1 text-center max-w-md">
             {activeTab === "all"
               ? "Reviews from buyers will appear here after completed orders"
               : `No ${activeTab} reviews`}
           </p>
-        </GlassCard>
+        </div>
       ) : (
         <>
           <div className="space-y-3">
             {reviews.map((review) => (
-              <GlassCard key={review.id} className="p-5">
+              <div key={review.id} className="p-5">
                 <div className="flex items-start gap-4">
                   {/* Reviewer Avatar */}
                   <div className="w-10 h-10 rounded-full bg-gradient-to-br from-arcane-purple to-arcane-gold flex items-center justify-center text-sm font-bold text-white overflow-hidden flex-shrink-0">
@@ -235,7 +241,7 @@ export default function Feedback() {
                     )}
                   </div>
                 </div>
-              </GlassCard>
+              </div>
             ))}
           </div>
 

@@ -21,7 +21,7 @@ import Button from "../../components/ui/Button";
 import useCreateListingStore from "../../stores/useCreateListingStore";
 import useMarketplaceStore from "../../stores/useMarketplaceStore";
 import toast from "react-hot-toast";
-
+import emptyOrdersImage from "/public/icons/pages/empty-orders.png";
 const statusColors = {
   active: "bg-green-500/20 text-green-400",
   pending: "bg-amber-500/20 text-amber-400",
@@ -371,6 +371,7 @@ export default function ListingsManagement() {
           <Button
             onClick={() => setShowBulkUpload(true)}
             variant="ghost"
+            className="text-white"
             size="sm"
           >
             <HiOutlineUpload className="w-4 h-4" /> Bulk Upload
@@ -386,7 +387,7 @@ export default function ListingsManagement() {
       {/* Filters */}
       <div className="flex flex-wrap gap-2 items-center">
         <div className="relative flex-1 max-w-xs">
-          <HiOutlineSearch className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-text-muted" />
+          <HiOutlineSearch className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white" />
           <input
             type="text"
             value={search}
@@ -399,10 +400,10 @@ export default function ListingsManagement() {
           <button
             key={s}
             onClick={() => setFilter(s)}
-            className={`px-3 py-1.5 rounded-lg text-xs font-medium capitalize transition-all ${
+            className={`px-3 py-1.5 rounded-lg text-xs font-medium capitalize transition-all cursor-pointer ${
               filter === s
-                ? "bg-arcane-gold/20 text-arcane-gold border border-arcane-gold/30"
-                : "text-text-muted hover:text-white bg-[#1E1D24]"
+                ? "bg-arcane-gold text-arcane-dark border border-arcane-gold/30"
+                : "text-text-muted text-white bg-[#1E1D24]"
             }`}
           >
             {s} (
@@ -415,14 +416,26 @@ export default function ListingsManagement() {
       </div>
 
       {filtered.length === 0 ? (
-        <GlassCard className="p-12 text-center">
-          <p className="text-text-muted">No listings found</p>
-          <Link to="/sell">
-            <Button variant="gold" size="sm" className="mt-4">
-              Create Listing
-            </Button>
-          </Link>
-        </GlassCard>
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          className="space-y-6 max-w-2xl mx-auto"
+        >
+          <div className="flex flex-col items-center justify-center py-12 px-4">
+            {/* PNG Image */}
+            <div className="w-32 h-32 sm:w-40 sm:h-40 mb-6">
+              <img
+                src={emptyOrdersImage}
+                alt="No orders"
+                className="w-full h-full object-contain"
+              />
+            </div>
+
+            <h2 className="text-xl sm:text-2xl font-semibold text-white text-center">
+              No orders yet
+            </h2>
+          </div>
+        </motion.div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
           {filtered.map((listing) => (
@@ -496,7 +509,7 @@ export default function ListingsManagement() {
                             onClick={() =>
                               updateListingStatus(listing.id, "hidden")
                             }
-                            className="p-1.5 text-text-muted hover:text-white rounded-lg hover:bg-[#1E1D24]"
+                            className="p-1.5 cursor-pointer text-white rounded-lg hover:bg-[#1E1D24]"
                             title="Hide"
                           >
                             <HiOutlineEyeOff className="w-4 h-4" />
@@ -505,7 +518,7 @@ export default function ListingsManagement() {
                             onClick={() =>
                               updateListingStatus(listing.id, "sold")
                             }
-                            className="p-1.5 text-text-muted hover:text-green-400 rounded-lg hover:bg-[#1E1D24]"
+                            className="p-1.5 cursor-pointer text-green-400 rounded-lg hover:bg-[#1E1D24]"
                             title="Mark Sold"
                           >
                             <HiOutlineCheck className="w-4 h-4" />
@@ -517,7 +530,7 @@ export default function ListingsManagement() {
                           onClick={() =>
                             updateListingStatus(listing.id, "active")
                           }
-                          className="p-1.5 text-text-muted hover:text-arcane-gold rounded-lg hover:bg-[#1E1D24]"
+                          className="p-1.5 cursor-pointer text-arcane-gold rounded-lg hover:bg-[#1E1D24]"
                           title="Publish"
                         >
                           <HiOutlineEye className="w-4 h-4" />
@@ -525,7 +538,7 @@ export default function ListingsManagement() {
                       )}
                       <button
                         onClick={() => deleteListing(listing.id)}
-                        className="p-1.5 text-text-muted hover:text-red-400 rounded-lg hover:bg-[#1E1D24]"
+                        className="p-1.5 cursor-pointer text-red-400 rounded-lg hover:bg-[#1E1D24]"
                         title="Delete"
                       >
                         <HiOutlineTrash className="w-4 h-4" />
@@ -536,7 +549,7 @@ export default function ListingsManagement() {
                           if (result.success)
                             navigate(`/sell?edit=${listing.id}`);
                         }}
-                        className="p-1.5 text-text-muted hover:text-blue-400 rounded-lg hover:bg-[#1E1D24]"
+                        className="p-1.5 cursor-pointer text-blue-400 rounded-lg hover:bg-[#1E1D24]"
                         title="Edit"
                       >
                         <HiOutlinePencil className="w-4 h-4" />
@@ -550,7 +563,7 @@ export default function ListingsManagement() {
                           if (result.success)
                             navigate(`/sell?duplicate=${listing.id}`);
                         }}
-                        className="p-1.5 text-text-muted hover:text-purple-400 rounded-lg hover:bg-[#1E1D24]"
+                        className="p-1.5 cursor-pointer text-purple-400 rounded-lg hover:bg-[#1E1D24]"
                         title="Duplicate"
                       >
                         <HiOutlineClipboardCopy className="w-4 h-4" />

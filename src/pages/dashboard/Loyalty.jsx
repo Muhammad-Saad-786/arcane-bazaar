@@ -134,7 +134,7 @@ export default function Loyalty() {
       <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
-        className="space-y-6 max-w-4xl"
+        className="space-y-6 max-w-full mx-auto"
       >
         {/* Header */}
         <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-arcane-purple/20 via-arcane-dark to-arcane-gold/10 p-6 sm:p-10">
@@ -159,10 +159,8 @@ export default function Loyalty() {
             {nextTierData && (
               <div className="mt-6 p-4 rounded-xl bg-arcane-dark/50">
                 <div className="flex items-center justify-between mb-2">
-                  <span className="text-sm text-text-secondary">
-                    {currentTier.name}
-                  </span>
-                  <span className="text-sm text-text-secondary">
+                  <span className="text-sm text-white">{currentTier.name}</span>
+                  <span className="text-sm text-white">
                     {nextTierData.name}
                   </span>
                 </div>
@@ -189,8 +187,8 @@ export default function Loyalty() {
               onClick={() => setActiveTab(tab)}
               className={`px-4 py-2 rounded-lg text-sm font-medium capitalize transition-all hover:cursor-pointer ${
                 activeTab === tab
-                  ? "bg-arcane-purple/20 text-white"
-                  : "text-white"
+                  ? "bg-arcane-gold text-arcane-dark"
+                  : "text-white bg-arcane-dark"
               }`}
             >
               {tab}

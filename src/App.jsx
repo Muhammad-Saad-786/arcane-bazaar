@@ -37,9 +37,7 @@ const PublicSellerProfile = lazy(() => import("./pages/PublicSellerProfile"));
 
 // Dashboard - DIRECT imports (no lazy loading for instant navigation)
 import DashboardLayout from "./components/dashboard/DashboardLayout";
-import DashboardOverview from "./pages/dashboard/DashboardOverview";
 import Orders from "./pages/dashboard/Orders";
-import Wishlist from "./pages/dashboard/Wishlist";
 import Offers from "./pages/dashboard/Offers";
 import Boosting from "./pages/dashboard/Boosting";
 import Messages from "./pages/dashboard/Messages";
@@ -165,9 +163,7 @@ function App() {
               </ProtectedRoute>
             }
           >
-            <Route index element={<DashboardOverview />} />
             <Route path="orders" element={<Orders />} />
-            <Route path="wishlist" element={<Wishlist />} />
             <Route path="offers" element={<Offers />} />
             <Route path="boosting" element={<Boosting />} />
             <Route path="messages" element={<Messages />} />

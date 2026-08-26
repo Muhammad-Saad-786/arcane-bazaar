@@ -12,7 +12,6 @@ import {
   HiOutlineChevronRight,
 } from "react-icons/hi";
 import useAuthStore from "../../stores/useAuthStore";
-import useWishlistStore from "../../stores/useWishlistStore";
 import useNavbarStore from "../../stores/useNavbarStore";
 import Logo from "../shared/Logo";
 import SmartSearch from "../search/SmartSearch";
@@ -35,7 +34,6 @@ export default function Navbar() {
   const [activeDropdown, setActiveDropdown] = useState(null);
   const [dropdownSearch, setDropdownSearch] = useState("");
   const { user } = useAuthStore();
-  const { count: wishlistCount } = useWishlistStore();
   const location = useLocation();
   const navigate = useNavigate();
   const dropdownRef = useRef(null);
@@ -142,17 +140,6 @@ export default function Navbar() {
               <CurrencySelector />
               {user ? (
                 <>
-                  <Link
-                    to="/dashboard/wishlist"
-                    className="relative p-2 text-white transition-colors"
-                  >
-                    <HiOutlineHeart className="w-5 h-5" />
-                    {wishlistCount > 0 && (
-                      <span className="absolute -top-0.5 -right-0.5 w-4 h-4 bg-arcane-purple text-white text-[10px] rounded-full flex items-center justify-center font-bold">
-                        {wishlistCount}
-                      </span>
-                    )}
-                  </Link>
                   <Link
                     to="/dashboard/messages"
                     className="relative p-2 text-white transition-colors hidden sm:block"

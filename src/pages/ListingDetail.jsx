@@ -23,7 +23,6 @@ import toast from "react-hot-toast";
 import { supabase } from "../lib/supabase";
 import useAuthStore from "../stores/useAuthStore";
 import useCurrencyStore from "../stores/useCurrencyStore";
-import useWishlistStore from "../stores/useWishlistStore";
 import Button from "../components/ui/Button";
 import Spinner from "../components/ui/Spinner";
 import SEO from "../components/ui/SEO";
@@ -33,7 +32,6 @@ export default function ListingDetail() {
   const { id } = useParams();
   const { user } = useAuthStore();
   const { formatPrice } = useCurrencyStore();
-  const { wishlistIds, toggleWishlist } = useWishlistStore();
   const navigate = useNavigate();
 
   const [listing, setListing] = useState(null);
@@ -179,7 +177,6 @@ export default function ListingDetail() {
     );
   }
 
-  const isWishlisted = wishlistIds.includes(listing.id);
   const isSold = listing.status === "sold";
   const seller = listing.seller;
   const images = listing.images || [];
@@ -697,22 +694,6 @@ export default function ListingDetail() {
                   </Button>
 
                   <div className="grid grid-cols-2 gap-2">
-                    <Button
-                      onClick={() => toggleWishlist(listing.id)}
-                      variant="ghost"
-                      className="border border-[#2A2932] bg-[#141319] text-xs py-2.5 flex items-center justify-center gap-1.5"
-                    >
-                      {isWishlisted ? (
-                        <>
-                          <HiHeart className="w-4 h-4 text-red-400" /> Saved
-                        </>
-                      ) : (
-                        <>
-                          <HiOutlineHeart className="w-4 h-4" /> Wishlist
-                        </>
-                      )}
-                    </Button>
-
                     <Button
                       variant="ghost"
                       className="border border-[#2A2932] bg-[#141319] text-xs py-2.5 flex items-center justify-center gap-1.5"

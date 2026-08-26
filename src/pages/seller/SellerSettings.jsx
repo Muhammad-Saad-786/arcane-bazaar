@@ -43,7 +43,7 @@ export default function SellerSettings() {
     <motion.div
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
-      className="space-y-6 max-w-2xl"
+      className="space-y-6 max-w-full mx-auto"
     >
       <h1 className="text-2xl font-display font-extrabold text-white">
         Settings

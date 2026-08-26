@@ -89,7 +89,7 @@ export default function Support() {
     <motion.div
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
-      className="space-y-8 max-w-4xl"
+      className="space-y-8 max-w-full mx-auto"
     >
       <SEO title="Support" />
 

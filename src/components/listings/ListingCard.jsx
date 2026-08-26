@@ -12,13 +12,10 @@ import {
   HiCheckCircle,
 } from "react-icons/hi";
 import useCurrencyStore from "../../stores/useCurrencyStore";
-import useWishlistStore from "../../stores/useWishlistStore";
 
 export default function ListingCard({ listing }) {
   const { formatPrice } = useCurrencyStore();
-  const { wishlistIds, toggleWishlist } = useWishlistStore();
 
-  const isWishlisted = wishlistIds.includes(listing.id);
   const isSold = listing.status === "sold";
   const categoryType = listing.category?.type || "account";
 
@@ -104,23 +101,6 @@ export default function ListingCard({ listing }) {
                   </span>
                 )}
               </div>
-
-              {/* Wishlist Button */}
-              <button
-                type="button"
-                onClick={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  toggleWishlist(listing.id);
-                }}
-                className="absolute top-2 right-2 z-10 p-1.5 rounded-lg bg-[#141319]/80 hover:bg-[#141319] text-text-muted hover:text-red-400 border border-[#2A2932] transition-colors"
-              >
-                {isWishlisted ? (
-                  <HiHeart className="w-4 h-4 text-red-500" />
-                ) : (
-                  <HiOutlineHeart className="w-4 h-4" />
-                )}
-              </button>
 
               {/* Category Indicator Tag */}
               <div className="absolute bottom-2 left-2 z-10">
