@@ -22,6 +22,7 @@ import useCreateListingStore from "../../stores/useCreateListingStore";
 import useMarketplaceStore from "../../stores/useMarketplaceStore";
 import toast from "react-hot-toast";
 import emptyOrdersImage from "/public/icons/pages/empty-orders.png";
+import SEO from "../../components/ui/SEO";
 const statusColors = {
   active: "bg-green-500/20 text-green-400",
   pending: "bg-amber-500/20 text-amber-400",
@@ -358,6 +359,7 @@ export default function ListingsManagement() {
       animate={{ opacity: 1 }}
       className="space-y-6"
     >
+      <SEO title="Listings Management" />
       <div className="flex items-center justify-between flex-wrap gap-4">
         <div>
           <h1 className="text-2xl font-display font-extrabold text-white">

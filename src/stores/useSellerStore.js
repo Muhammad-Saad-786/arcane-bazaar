@@ -88,17 +88,37 @@ const useSellerStore = create((set, get) => ({
     set({ listings: data || [], loading: false });
   },
 
+  // CRITICAL FIX: Explicitly alias "!buyer_id" to resolve the foreign key ambiguity
   fetchOrders: async () => {
     const user = useAuthStore.getState().user;
     if (!user) return;
-    const { data } = await supabase
-      .from("orders")
-      .select(
-        `*, listing:listings(title, game:games(name)), buyer:profiles(username)`,
-      )
-      .eq("seller_id", user.id)
-      .order("created_at", { ascending: false });
-    set({ orders: data || [] });
+    try {
+      const { data, error } = await supabase
+        .from("orders")
+        .select(
+          `
+            *,
+            listing:listings(
+              id, 
+              title, 
+              game:games(id, name, slug, icon),
+              category:listing_categories(name, type)
+            ),
+            buyer:profiles!buyer_id(id, username, avatar_url)
+          `,
+        )
+        .eq("seller_id", user.id)
+        .order("created_at", { ascending: false });
+
+      if (error) {
+        console.error("fetchOrders error:", error);
+        return;
+      }
+
+      set({ orders: data || [] });
+    } catch (err) {
+      console.error("fetchOrders exception:", err);
+    }
   },
 
   fetchTransactions: async () => {
@@ -149,13 +169,12 @@ const useSellerStore = create((set, get) => ({
     toast.success("Order marked as delivered");
     get().fetchOrders();
   },
-  // ============================================
+
   // ORDER CHAT
-  // ============================================
   fetchOrderMessages: async (orderId) => {
     const { data } = await supabase
       .from("messages")
-      .select("*, sender:profiles(username, avatar_url)")
+      .select("*, sender:profiles!sender_id(username, avatar_url)")
       .eq("order_id", orderId)
       .order("created_at", { ascending: true });
     return data || [];
@@ -167,7 +186,7 @@ const useSellerStore = create((set, get) => ({
 
     const { data: order } = await supabase
       .from("orders")
-      .select("buyer_id, seller_id")
+      .select("buyer_id, seller_id, listing_id")
       .eq("id", orderId)
       .single();
     if (!order) return null;
@@ -182,10 +201,11 @@ const useSellerStore = create((set, get) => ({
           sender_id: user.id,
           receiver_id: receiverId,
           order_id: orderId,
+          listing_id: order.listing_id,
           content: content.trim(),
         },
       ])
-      .select("*, sender:profiles(username, avatar_url)")
+      .select("*, sender:profiles!sender_id(username, avatar_url)")
       .single();
 
     if (error) {
@@ -195,9 +215,7 @@ const useSellerStore = create((set, get) => ({
     return data;
   },
 
-  // ============================================
   // DELIVERY WITH PROOF
-  // ============================================
   deliverOrderWithProof: async (orderId, proofFile, note = "") => {
     const user = useAuthStore.getState().user;
     if (!user) return { success: false };
@@ -206,7 +224,7 @@ const useSellerStore = create((set, get) => ({
       let proofUrl = null;
       if (proofFile) {
         const fileExt = proofFile.name.split(".").pop();
-        const filePath = `delivery-proofs/${user.id}/${Date.now()}.${fileExt}`;
+        const filePath = `${user.id}/delivery-${Date.now()}.${fileExt}`;
         const { data: upload } = await supabase.storage
           .from("account-images")
           .upload(filePath, proofFile);
@@ -223,12 +241,31 @@ const useSellerStore = create((set, get) => ({
         .update({
           status: "delivered",
           escrow_status: "delivered",
-          delivery_proof: proofUrl,
-          delivery_note: note,
+          payment_proof: proofUrl,
           updated_at: new Date().toISOString(),
         })
         .eq("id", orderId)
         .eq("seller_id", user.id);
+
+      // Notify Buyer Real-Time
+      const { data: order } = await supabase
+        .from("orders")
+        .select("buyer_id, amount")
+        .eq("id", orderId)
+        .single();
+
+      if (order) {
+        await supabase.from("notifications").insert([
+          {
+            user_id: order.buyer_id,
+            title: "Order Delivered! 📦",
+            message: `Seller marked your order as delivered. Please inspect and confirm to complete.`,
+            type: "order",
+            link: "/dashboard/orders",
+            read: false,
+          },
+        ]);
+      }
 
       toast.success("Order delivered with proof!");
       get().fetchOrders();
@@ -239,16 +276,13 @@ const useSellerStore = create((set, get) => ({
     }
   },
 
-  // ============================================
   // REJECT ORDER
-  // ============================================
   rejectOrder: async (orderId, reason = "") => {
     await supabase
       .from("orders")
       .update({
         status: "cancelled",
         escrow_status: "refunded",
-        rejection_reason: reason,
         updated_at: new Date().toISOString(),
       })
       .eq("id", orderId);
@@ -258,9 +292,7 @@ const useSellerStore = create((set, get) => ({
     get().fetchStats();
   },
 
-  // ============================================
   // WITHDRAWAL REQUEST
-  // ============================================
   requestWithdrawal: async (amount, method) => {
     const user = useAuthStore.getState().user;
     const { stats } = get();
@@ -291,9 +323,7 @@ const useSellerStore = create((set, get) => ({
     return { success: true };
   },
 
-  // ============================================
   // VACATION MODE
-  // ============================================
   toggleVacationMode: async (enable) => {
     const user = useAuthStore.getState().user;
     const { data: listings } = await supabase
@@ -323,14 +353,11 @@ const useSellerStore = create((set, get) => ({
     get().fetchListings();
   },
 
-  // ============================================
   // BULK UPLOAD (CSV)
-  // ============================================
   bulkUploadListings: async (rows, gameId, categoryId) => {
     const user = useAuthStore.getState().user;
     if (!user) throw new Error("User not authenticated");
 
-    // Fetch categories for this specific game to auto-match category types
     const { data: gameCategories } = await supabase
       .from("listing_categories")
       .select("id, name, type")
@@ -339,10 +366,8 @@ const useSellerStore = create((set, get) => ({
     const categories = gameCategories || [];
 
     const resolveCategoryId = (row) => {
-      // If seller selected a specific category in modal, use it
       if (categoryId) return categoryId;
 
-      // 1. Detect Topup / Currency
       if (row.amount_options && row.amount_options.length > 0) {
         const topupCat = categories.find(
           (c) => c.type === "topup" || c.type === "currency",
@@ -350,25 +375,21 @@ const useSellerStore = create((set, get) => ({
         if (topupCat) return topupCat.id;
       }
 
-      // 2. Detect Boosting
       if (row.service_type || row.target_rank) {
         const boostCat = categories.find((c) => c.type === "boosting");
         if (boostCat) return boostCat.id;
       }
 
-      // 3. Detect Items
       if (row.item_name || (row.quantity && row.quantity > 1)) {
         const itemCat = categories.find((c) => c.type === "items");
         if (itemCat) return itemCat.id;
       }
 
-      // 4. Detect Account
       if (row.rank || row.level || row.skin_count || row.hero_count) {
         const accountCat = categories.find((c) => c.type === "account");
         if (accountCat) return accountCat.id;
       }
 
-      // Fallback to first category or null
       return categories[0]?.id || null;
     };
 
@@ -399,14 +420,11 @@ const useSellerStore = create((set, get) => ({
     }));
 
     const { error } = await supabase.from("listings").insert(listingsToInsert);
-    if (error) {
-      throw new Error(error.message);
-    }
+    if (error) throw new Error(error.message);
 
     return { success: true };
   },
 
-  // Seller Levels
   getSellerLevel: () => {
     const { stats } = get();
     const orders = stats.completedOrders || 0;

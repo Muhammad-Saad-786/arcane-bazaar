@@ -34,7 +34,7 @@ const GameMarketplace = lazy(() => import("./pages/games/GameMarketplace"));
 const SellAccount = lazy(() => import("./pages/sell/SellAccount"));
 const ListingDetail = lazy(() => import("./pages/ListingDetail"));
 const PublicSellerProfile = lazy(() => import("./pages/PublicSellerProfile"));
-
+const Checkout = lazy(() => import("./pages/Checkout"));
 // Dashboard - DIRECT imports (no lazy loading for instant navigation)
 import DashboardLayout from "./components/dashboard/DashboardLayout";
 import Orders from "./pages/dashboard/Orders";
@@ -85,6 +85,14 @@ function App() {
             <Route path="/become-seller" element={<BecomeSeller />} />
             <Route path="/listing/:id" element={<ListingDetail />} />
             <Route path="/seller/:username" element={<PublicSellerProfile />} />
+            <Route
+              path="/checkout/:listingId"
+              element={
+                <ProtectedRoute>
+                  <Checkout />
+                </ProtectedRoute>
+              }
+            />
             <Route
               path="/verify/before-selling"
               element={

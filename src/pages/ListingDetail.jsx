@@ -683,10 +683,12 @@ export default function ListingDetail() {
                     className="w-full font-bold shadow-lg shadow-arcane-gold/20 flex items-center justify-center gap-2"
                     onClick={() => {
                       if (!user) {
-                        toast.error("Please login to complete your purchase");
+                        toast.error("Please login to purchase");
                         navigate("/login");
                       } else {
-                        toast.success("Redirecting to Escrow Checkout...");
+                        navigate(
+                          `/checkout/${listing.id}?package=${selectedPackageIndex}`,
+                        );
                       }
                     }}
                   >
